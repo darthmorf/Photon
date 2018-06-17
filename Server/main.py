@@ -22,7 +22,7 @@ class Client:
     self.address = clientAddress
 
     print("Got a connection from " + str(self.address))
-    #self.socket.send(encode(Messages))
+    self.socket.send(encode(Messages))
 
   def ListenForPackets(self):
     global Messages

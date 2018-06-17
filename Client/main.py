@@ -64,7 +64,12 @@ def decode(packet):
 def ListenForPackets(server, gui):
   while True:
     message = decode(server.recv(1024))
-    gui.WriteLine(message)
+    if type(message) == list:
+      for element in message:
+        gui.WriteLine(element)
+        
+    else:
+      gui.WriteLine(message)
 
 
 def __main__():
