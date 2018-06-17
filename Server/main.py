@@ -70,7 +70,6 @@ def __main__():
     Clients.append(newClient)
     newThread = Thread(target=newClient.ListenForPackets)
     newThread.start()
-    print(":)")
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ class UserInterface:
     master.geometry('1032x516') #Create a new window with resolution 1280x720 (scalable)
     master.resizable(False, False)
     
-    self.messageDisplay = Text(master, height=28, width=128, relief="groove", state="disabled")
+    self.messageDisplay = Text(master, height=28, width=145, relief="groove", state="disabled", font=("Consolas", 10))
     self.messageDisplay.grid(column=0, columnspan=2, padx=2, pady=2, row=1) #Set the messageDisplay to expand dynamically
 
     self.messageInput = Entry(master, justify="left", relief="groove", takefocus="true", width=160)
