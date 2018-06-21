@@ -56,6 +56,10 @@ class Client:
       handshakePacket = decode(self.socket.recv(1024)) # Wait for client handshake TODO: time this out
       self.username = handshakePacket.username
 
+      announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SILENT")
+      Messages.append([announceUserPacket.sender, announceUserPacket.message])
+      SendToClients(announceUserPacket)
+
       newMessageListPacket = MessageListPacket(Messages)
       self.socket.send(encode(newMessageListPacket))
       
@@ -83,8 +87,12 @@ class Client:
           SendToClients(packet)
 
     except ConnectionResetError: # Lost connection with client
-      
       print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
+
+      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SILENT")
+      Messages.append([announceUserPacket.sender, announceUserPacket.message])
+      SendToClients(announceUserPacket)
+      
       self.socket.close() # Close socket
       global Clients
       for i in range(0, len(Clients)):
@@ -102,10 +110,17 @@ class Client:
 def ReportError():
   traceback.print_exc()
 
-def SendToClients(message):
-  global Clients
-  for client in Clients:
-    client.socket.send(encode(message))
+def SendToClients(packet):
+  try:
+    global Clients
+    for client in Clients:
+      client.socket.send(encode(packet))
+      
+  except ConnectionResetError: # Client has lost connection
+    True # do nothing
+    
+  except Exception:
+    ReportError()
     
 # Dumps and Loads are not well named
 def encode(packet):

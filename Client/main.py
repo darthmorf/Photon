@@ -124,24 +124,29 @@ def onProgramExit():
 
 
 def ListenForPackets(server, gui):
-  global ServerSocket
-  while True:
-    packet = decode(server.recv(1024))
+  try:
+    global ServerSocket
+    while True:
+      packet = decode(server.recv(1024))
 
-    if packet.type == "PING":
-      if packet.response == True:
-        print("Pong")# will do more later
-      elif packet.response == False: # Ping is not a response; the server wants a response
-        newPingPacket = PingPacket(True)
-        ServerSocket.send(encode(newPingPacket))
+      if packet.type == "PING":
+        if packet.response == True:
+          print("Pong")# will do more later
+        elif packet.response == False: # Ping is not a response; the server wants a response
+          newPingPacket = PingPacket(True)
+          ServerSocket.send(encode(newPingPacket))
 
-    elif packet.type == "MESSAGELIST":
-      for element in packet.messageList:
-        if element[0] == "ANNOUNCE":  gui.WriteLine(element[1])
-        else: gui.WriteLine(formatUsername(element[0]) + element[1])
-           
-    elif packet.type == "MESSAGE":
-      gui.WriteLine(formatUsername(packet.sender) + packet.message)
+      elif packet.type == "MESSAGELIST":
+        for element in packet.messageList:
+          if element[0] == "SILENT":  gui.WriteLine(element[1])
+          else: gui.WriteLine(formatUsername(element[0]) + element[1])
+             
+      elif packet.type == "MESSAGE":
+        if packet.sender == "SILENT":  gui.WriteLine(packet.message)    
+        else: gui.WriteLine(formatUsername(packet.sender) + packet.message)
+        
+  except Exception:
+     ReportError()
 
 
 def __main__():
