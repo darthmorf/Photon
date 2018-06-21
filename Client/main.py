@@ -63,14 +63,7 @@ class UserInterface:
       ReportError()
 
   def SendButtonClick(self, optionalReturnHandler=None):
-    try:
-      global ServerSocket
-      newMessagePacket = MessagePacket(self.messageInput.get(), Username) # Create a new message packet
-      ServerSocket.send(encode(newMessagePacket))
-      self.messageInput.delete(0, END)
-
-    except Exception:
-      ReportError()
+    SendMessage(self.messageInput.get(), self)
 
       
 class Packet:
@@ -95,6 +88,16 @@ class MessageListPacket(Packet):
     
     
 # Functions
+
+def SendMessage(message, gui):
+  try:
+      global ServerSocket
+      newMessagePacket = MessagePacket(gui.messageInput.get(), Username) # Create a new message packet
+      ServerSocket.send(encode(newMessagePacket))
+      gui.messageInput.delete(0, END)
+
+  except Exception:
+     ReportError()
 
 def ReportError():
   traceback.print_exc()
