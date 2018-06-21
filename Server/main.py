@@ -1,14 +1,14 @@
 # Main Server file
 
 import socket                                         
-from threading import Thread
+from threading import *
 import pickle
 import traceback
+import select
 
 
 # Global Variables
 
-ClientCount = 0
 Messages = [["Server","Hello"], ["Server","World"]]
 Clients  = []
 
@@ -37,17 +37,22 @@ class MessageListPacket(Packet):
     
   
 class Client:
-  def __init__(self, clientId, clientSocket, clientAddress):
+  def __init__(self, clientSocket, clientAddress):
     try:
       global Messages
-      self.id = clientId
       self.socket = clientSocket
-      self.address = clientAddress
+      self.address = clientAddress[0]
+      self.id = clientAddress[1]
+      self.thread = None
 
-      print("Got a connection from " + str(self.address))
+      print("Got a connection from " + str(self.address) + ", id " + str(self.id))
       newMessageListPacket = MessageListPacket(Messages)
       self.socket.send(encode(newMessageListPacket))
 
+      
+      self.listenerThread = Thread(target=self.ListenForPackets)
+      self.listenerThread.start()
+     
     except Exception:
       ReportError()
 
@@ -55,19 +60,29 @@ class Client:
     try:
       global Messages
       while True:
+        
         packet = decode(self.socket.recv(1024)) # Wait for message from client
-
-        if packet.type == "PING":
+        if packet.type == "PING": # Ping response from client
           if packet.response == True:
-            print("Pong") # will do more later
-          elif packet.response == False:
-            newPingPacket = PingPacket(True)
+            print("pong") #TODO do stuff
+          elif packet.response == False: # Ping is not a response; the client wants a response
+            newPingPacket = PingPacket(True) 
             self.socket.send(encode(newPingPacket))
 
         elif packet.type == "MESSAGE":
           Messages.append([packet.sender, packet.message])
           SendToClients(packet)
 
+    except ConnectionResetError: # Lost connection with client
+      print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
+      self.socket.close() # Close socket
+      global Clients
+      for i in range(0, len(Clients)):
+        if Clients[i].id == self.id:
+          del Clients[i] # Delete class instance
+          
+      return # Return from Listen thread
+      
     except Exception:
       ReportError()
 
@@ -108,11 +123,8 @@ def __main__():
     global ClientCount
     # Wait for connections
     clientSocket, clientAddress = serverSocket.accept()
-    newClient = Client(ClientCount, clientSocket, clientAddress)
-    ClientCount += 1
+    newClient = Client(clientSocket, clientAddress)
     Clients.append(newClient)
-    newThread = Thread(target=newClient.ListenForPackets)
-    newThread.start()
 
 
 if __name__ == "__main__":

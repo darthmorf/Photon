@@ -6,6 +6,8 @@ import socket
 import pickle                                    
 from threading import Thread
 import traceback
+import atexit
+import os
 
 # Global vars
 
@@ -37,6 +39,8 @@ class UserInterface:
       self.statusText.grid(column=0, row=0, sticky=W)
 
       master.bind('<Return>', self.SendButtonClick) # Use return in addition to send button
+
+      master.protocol("WM_DELETE_WINDOW", onProgramExit)
       
     except Exception:
       ReportError()
@@ -104,6 +108,12 @@ def decode(packet):
 def formatUsername(name):
   return "<" + name + ">: "
 
+def onProgramExit():
+  global ServerSocket
+  print("Window closed: Force closing all threads and server socket")
+  ServerSocket.close()
+  os._exit(1)
+
 
 def ListenForPackets(server, gui):
   global ServerSocket
@@ -113,7 +123,7 @@ def ListenForPackets(server, gui):
     if packet.type == "PING":
       if packet.response == True:
         print("Pong")# will do more later
-      elif packet.response == False:
+      elif packet.response == False: # Ping is not a response; the server wants a response
         newPingPacket = PingPacket(True)
         ServerSocket.send(encode(newPingPacket))
 
@@ -128,6 +138,8 @@ def ListenForPackets(server, gui):
 def __main__():
   global ServerSocket
   global Username
+  atexit.register(onProgramExit)
+  
   Username = input("Enter username: ")
 
   # Display UI
