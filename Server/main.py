@@ -3,36 +3,79 @@
 import socket                                         
 from threading import Thread
 import pickle
+import traceback
 
 
 # Global Variables
 
 ClientCount = 0
-Messages = ["<Server>: Hello", "<Server>: World"]
+Messages = [["Server","Hello"], ["Server","World"]]
 Clients  = []
 
 
 # Classes
 
+class Packet:
+  def __init__(self, packetType):
+    self.type = packetType
+
+class PingPacket(Packet):
+  def __init__(self, response):
+    Packet.__init__(self, "PING")
+    self.response = response
+
+class MessagePacket(Packet):
+  def __init__(self, message, sender):
+    Packet.__init__(self, "MESSAGE")
+    self.message = message
+    self.sender = sender
+
+class MessageListPacket(Packet):
+  def __init__(self, messageList):
+    Packet.__init__(self, "MESSAGELIST")
+    self.messageList = messageList
+    
+  
 class Client:
   def __init__(self, clientId, clientSocket, clientAddress):
-    global Messages
-    self.id = clientId
-    self.socket = clientSocket
-    self.address = clientAddress
+    try:
+      global Messages
+      self.id = clientId
+      self.socket = clientSocket
+      self.address = clientAddress
 
-    print("Got a connection from " + str(self.address))
-    self.socket.send(encode(Messages))
+      print("Got a connection from " + str(self.address))
+      newMessageListPacket = MessageListPacket(Messages)
+      self.socket.send(encode(newMessageListPacket))
+
+    except Exception:
+      ReportError()
 
   def ListenForPackets(self):
-    global Messages
-    while True:
-      message = decode(self.socket.recv(1024)) # Wait for message from client
-      Messages.append(message)
-      SendToClients(message)
+    try:
+      global Messages
+      while True:
+        packet = decode(self.socket.recv(1024)) # Wait for message from client
+
+        if packet.type == "PING":
+          if packet.response == True:
+            print("Pong") # will do more later
+          elif packet.response == False:
+            newPingPacket = PingPacket(True)
+            self.socket.send(encode(newPingPacket))
+
+        elif packet.type == "MESSAGE":
+          Messages.append([packet.sender, packet.message])
+          SendToClients(packet)
+
+    except Exception:
+      ReportError()
 
 
 # Functions
+
+def ReportError():
+  traceback.print_exc()
 
 def SendToClients(message):
   global Clients
