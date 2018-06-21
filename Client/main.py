@@ -8,11 +8,14 @@ from threading import Thread
 import traceback
 import atexit
 import os
+import re
 
 # Global vars
 
 ServerSocket = None
 Username = ""
+
+NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
 
 # Classes
 
@@ -148,30 +151,45 @@ def ListenForPackets(server, gui):
      ReportError()
 
 def formatMessage(packet, gui):
-  lineIndex = float(gui.messageDisplay.index('end')) - 1
+  global NONBREAKINGSPACE
+  lineIndex = float(gui.messageDisplay.index('end')) - 1 # Get the line that the message will be on
   charCounter = 0
-  boldStart = None
-  boldEnd = None
+  italicRanges = [] # Contains ranges of italic text sections
   italicChar = "_"
-  for char in packet.message:
-    if char == italicChar and boldStart == None:
-      boldStart = charCounter + len(formatUsername(packet.sender))
-    elif char == italicChar:
-      boldEnd = charCounter + len(formatUsername(packet.sender)) - 1
-    charCounter +=1      
+  usernameLength = len(formatUsername(packet.sender))
 
-  if boldStart != None and boldEnd != None:
-    packet.message = packet.message.replace(italicChar,"")
+  italicInstances = [char.start() for char in re.finditer(italicChar, packet.message)]
+
+  packet.message = list(packet.message) # Convert to list so we can substitute chars by index
+
+  i = 0
+  for italicInstance in italicInstances: # Ensure character is not escaped by '\'
+    if packet.message[italicInstance - 1] == "\\":
+      packet.message[italicInstance - 1] = NONPRINTINGCHAR
+      del italicInstances[i]
+    else:
+      i+= 1
+
+  if len(italicInstances) % 2 != 0: # Ignore italic chars without a pair
+    italicInstances = italicInstances[:-1]
+
+
+  for i in range(0, len(italicInstances), 2): # Subsitite italic char for invisible char and determine start and end for italic regions
+    packet.message[italicInstances[i]] = NONPRINTINGCHAR
+    packet.message[italicInstances[i + 1]] = NONPRINTINGCHAR
+    italicRanges.append((italicInstances[i], italicInstances[i+1]))
+
+  packet.message = "".join(packet.message) # Convert back to string
   
-  if packet.sender == "SILENT":  gui.WriteLine(packet.message)    
+  if packet.sender == "SILENT":  gui.WriteLine(packet.message) # Print the message
   else: gui.WriteLine(formatUsername(packet.sender) + packet.message)
 
-  if boldStart != None and boldEnd != None:
-    print(str(lineIndex)[:-2] + "." + str(boldStart))
-    print(str(lineIndex)[:-2] + "." + str(boldEnd))
-    gui.messageDisplay.tag_add("italic", str(lineIndex)[:-2] + "." + str(boldStart), str(lineIndex)[:-2] + "." + str(boldEnd))
+  for italicRange in italicRanges: # Apply tags
+    italicStart = str(lineIndex)[:-2] + "." + str(italicRange[0] + usernameLength)
+    italicEnd   = str(lineIndex)[:-2] + "." + str(italicRange[1] + usernameLength)
+    gui.messageDisplay.tag_add("italic", italicStart, italicEnd)
     gui.messageDisplay.tag_config("italic", font=("Consolas", 10, "italic"))
-    gui.master.update()
+  gui.master.update()
         
 
 def __main__():
