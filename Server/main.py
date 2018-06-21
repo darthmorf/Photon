@@ -19,6 +19,11 @@ class Packet:
   def __init__(self, packetType):
     self.type = packetType
 
+class ClientHandshakePacket(Packet):
+  def __init__(self, username):
+    Packet.__init__(self, "CLIENTHANDSHAKE")
+    self.username = username
+
 class PingPacket(Packet):
   def __init__(self, response):
     Packet.__init__(self, "PING")
@@ -44,11 +49,15 @@ class Client:
       self.address = clientAddress[0]
       self.id = clientAddress[1]
       self.thread = None
+      self.username = "UNKNOWN"
 
       print("Got a connection from " + str(self.address) + ", id " + str(self.id))
+
+      handshakePacket = decode(self.socket.recv(1024)) # Wait for client handshake TODO: time this out
+      self.username = handshakePacket.username
+
       newMessageListPacket = MessageListPacket(Messages)
       self.socket.send(encode(newMessageListPacket))
-
       
       self.listenerThread = Thread(target=self.ListenForPackets)
       self.listenerThread.start()
@@ -74,6 +83,7 @@ class Client:
           SendToClients(packet)
 
     except ConnectionResetError: # Lost connection with client
+      
       print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
       self.socket.close() # Close socket
       global Clients

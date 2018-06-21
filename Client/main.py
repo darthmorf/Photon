@@ -70,6 +70,11 @@ class Packet:
   def __init__(self, packetType):
     self.type = packetType
 
+class ClientHandshakePacket(Packet):
+  def __init__(self, username):
+    Packet.__init__(self, "CLIENTHANDSHAKE")
+    self.username = username
+
 class PingPacket(Packet):
   def __init__(self, response):
     Packet.__init__(self, "PING")
@@ -132,7 +137,8 @@ def ListenForPackets(server, gui):
 
     elif packet.type == "MESSAGELIST":
       for element in packet.messageList:
-        gui.WriteLine(formatUsername(element[0]) + element[1])
+        if element[0] == "ANNOUNCE":  gui.WriteLine(element[1])
+        else: gui.WriteLine(formatUsername(element[0]) + element[1])
            
     elif packet.type == "MESSAGE":
       gui.WriteLine(formatUsername(packet.sender) + packet.message)
@@ -158,6 +164,9 @@ def __main__():
 
   # Connect to hostname on the port.
   ServerSocket.connect((host, port))
+
+  handshakePacket = ClientHandshakePacket(Username)
+  ServerSocket.send(encode(handshakePacket))
 
   # Start listener thread for server responses
   listenerThread = Thread(target=ListenForPackets, args=(ServerSocket, gui))
