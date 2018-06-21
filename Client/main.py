@@ -151,46 +151,72 @@ def ListenForPackets(server, gui):
      ReportError()
 
 def formatMessage(packet, gui):
-  global NONBREAKINGSPACE
   lineIndex = float(gui.messageDisplay.index('end')) - 1 # Get the line that the message will be on
-  charCounter = 0
-  italicRanges = [] # Contains ranges of italic text sections
-  italicChar = "_"
   usernameLength = len(formatUsername(packet.sender))
-
-  italicInstances = [char.start() for char in re.finditer(italicChar, packet.message)]
-
-  packet.message = list(packet.message) # Convert to list so we can substitute chars by index
-
-  i = 0
-  for italicInstance in italicInstances: # Ensure character is not escaped by '\'
-    if packet.message[italicInstance - 1] == "\\":
-      packet.message[italicInstance - 1] = NONPRINTINGCHAR
-      del italicInstances[i]
-    else:
-      i+= 1
-
-  if len(italicInstances) % 2 != 0: # Ignore italic chars without a pair
-    italicInstances = italicInstances[:-1]
-
-
-  for i in range(0, len(italicInstances), 2): # Subsitite italic char for invisible char and determine start and end for italic regions
-    packet.message[italicInstances[i]] = NONPRINTINGCHAR
-    packet.message[italicInstances[i + 1]] = NONPRINTINGCHAR
-    italicRanges.append((italicInstances[i], italicInstances[i+1]))
-
-  packet.message = "".join(packet.message) # Convert back to string
+  
+  packet.message, italicRanges = formatBalsamiq(packet.message, "_")
+  packet.message, boldRanges = formatBalsamiq(packet.message, "*")
   
   if packet.sender == "SILENT":  gui.WriteLine(packet.message) # Print the message
   else: gui.WriteLine(formatUsername(packet.sender) + packet.message)
 
-  for italicRange in italicRanges: # Apply tags
+  # Apply tags
+  for italicRange in italicRanges: 
     italicStart = str(lineIndex)[:-2] + "." + str(italicRange[0] + usernameLength)
     italicEnd   = str(lineIndex)[:-2] + "." + str(italicRange[1] + usernameLength)
     gui.messageDisplay.tag_add("italic", italicStart, italicEnd)
     gui.messageDisplay.tag_config("italic", font=("Consolas", 10, "italic"))
+  for boldRange in boldRanges: 
+    boldStart = str(lineIndex)[:-2] + "." + str(boldRange[0] + usernameLength)
+    boldEnd   = str(lineIndex)[:-2] + "." + str(boldRange[1] + usernameLength)
+    gui.messageDisplay.tag_add("bold", boldStart, boldEnd)
+    gui.messageDisplay.tag_config("bold", font=("Consolas", 10, "bold"))
+    
   gui.master.update()
         
+
+def formatBalsamiq(message, specialChar):
+  try:
+    global NONBREAKINGSPACE
+    charCounter = 0
+    charRanges = [] # Contains ranges of special char text sections
+
+    charInstances = []
+    i = 0
+    while True: # Locate all instances of special char within message
+      charInstance = message.find(specialChar, i)
+      if charInstance == -1:
+        break
+      else:
+        charInstances.append(charInstance)
+        i = charInstance + 1
+
+    print(charInstances)
+
+    message = list(message) # Convert to list so we can substitute chars by index
+
+    i = 0
+    for charInstance in charInstances: # Ensure character is not escaped by '\'
+      if message[charInstance - 1] == "\\":
+        message[charInstance - 1] = NONPRINTINGCHAR
+        del charInstances[i]
+      else:
+        i+= 1
+
+    if len(charInstances) % 2 != 0: # Ignore special chars without a pair
+      charInstances = charInstances[:-1]
+
+    for i in range(0, len(charInstances), 2): # Subsitite special char for invisible char and determine start and end for formatted regions
+      message[charInstances[i]] = NONPRINTINGCHAR
+      message[charInstances[i + 1]] = NONPRINTINGCHAR
+      charRanges.append((charInstances[i], charInstances[i+1]))
+
+    message = "".join(message) # Convert back to string
+
+    return message, charRanges
+  except Exception:
+     ReportError()
+
 
 def __main__():
   global ServerSocket
