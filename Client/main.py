@@ -20,11 +20,11 @@ class UserInterface:
   def __init__(self, master):
     try:
       self.master = master
-      master.title("Photon - IM Client")
-      master.iconbitmap(r".\icon.ico")
+      self.master.title("Photon - IM Client")
+      self.master.iconbitmap(r".\icon.ico")
 
-      master.geometry('1032x516') #Create a new window with resolution 1280x720 (scalable)
-      master.resizable(False, False)
+      self.master.geometry('1032x516') #Create a new window with resolution 1280x720 (scalable)
+      self.master.resizable(False, False)
       
       self.messageDisplay = Text(master, height=28, width=145, relief="groove", state="disabled", font=("Consolas", 10))
       self.messageDisplay.grid(column=0, columnspan=2, padx=2, pady=2, row=1) #Set the messageDisplay to expand dynamically
@@ -142,12 +142,37 @@ def ListenForPackets(server, gui):
           else: gui.WriteLine(formatUsername(element[0]) + element[1])
              
       elif packet.type == "MESSAGE":
-        if packet.sender == "SILENT":  gui.WriteLine(packet.message)    
-        else: gui.WriteLine(formatUsername(packet.sender) + packet.message)
+        formatMessage(packet, gui)
         
   except Exception:
      ReportError()
 
+def formatMessage(packet, gui):
+  lineIndex = float(gui.messageDisplay.index('end')) - 1
+  charCounter = 0
+  boldStart = None
+  boldEnd = None
+  italicChar = "_"
+  for char in packet.message:
+    if char == italicChar and boldStart == None:
+      boldStart = charCounter + len(formatUsername(packet.sender))
+    elif char == italicChar:
+      boldEnd = charCounter + len(formatUsername(packet.sender)) - 1
+    charCounter +=1      
+
+  if boldStart != None and boldEnd != None:
+    packet.message = packet.message.replace(italicChar,"")
+  
+  if packet.sender == "SILENT":  gui.WriteLine(packet.message)    
+  else: gui.WriteLine(formatUsername(packet.sender) + packet.message)
+
+  if boldStart != None and boldEnd != None:
+    print(str(lineIndex)[:-2] + "." + str(boldStart))
+    print(str(lineIndex)[:-2] + "." + str(boldEnd))
+    gui.messageDisplay.tag_add("italic", str(lineIndex)[:-2] + "." + str(boldStart), str(lineIndex)[:-2] + "." + str(boldEnd))
+    gui.messageDisplay.tag_config("italic", font=("Consolas", 10, "italic"))
+    gui.master.update()
+        
 
 def __main__():
   global ServerSocket
