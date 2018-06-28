@@ -1,7 +1,11 @@
 # Main Client File
 
-from tkinter import *
-from tkinter import ttk
+import sys
+
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.uic import loadUi
+
 import socket
 import pickle                                    
 from threading import Thread
@@ -12,6 +16,7 @@ import re
 
 # Global vars
 
+MainGui = None
 ServerSocket = None
 Username = ""
 
@@ -19,31 +24,13 @@ NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keep
 
 # Classes
 
-class UserInterface:
-  def __init__(self, master):
+class MainWindow(QMainWindow):
+  def __init__(self, *args):
     try:
-      self.master = master
-      self.master.title("Photon - IM Client")
-      self.master.iconbitmap(r".\icon.ico")
-
-      self.master.geometry('1032x516') #Create a new window with resolution 1280x720 (scalable)
-      self.master.resizable(False, False)
-      
-      self.messageDisplay = Text(master, height=28, width=145, relief="groove", state="disabled", font=("Consolas", 10))
-      self.messageDisplay.grid(column=0, columnspan=2, padx=2, pady=2, row=1) #Set the messageDisplay to expand dynamically
-
-      self.messageInput = ttk.Entry(master, justify="left", takefocus="true", width=150)
-      self.messageInput.grid(column=0, padx=2, pady=6, row=2)
-
-      self.sendButton = ttk.Button(master, text="Send", command=self.SendButtonClick)             
-      self.sendButton.grid(column=1, padx=2, pady=6, row=2)
-
-      self.statusText = ttk.Label(master, text="Using Photon, a Python IM client")
-      self.statusText.grid(column=0, row=0, sticky=W)
-
-      master.bind('<Return>', self.SendButtonClick) # Use return in addition to send button
-
-      master.protocol("WM_DELETE_WINDOW", onProgramExit)
+      super(MainWindow, self).__init__(*args)
+      loadUi("mainWindow.ui", self)
+      self.messageInputButton.clicked.connect(self.onSendClick)
+      self.messageInput.returnPressed.connect(self.onSendClick)
       
     except Exception:
       ReportError()
@@ -53,20 +40,18 @@ class UserInterface:
     try:
       if message == "":
         return
-      
-      if message[-2:] != "\n":
-         message += "\n"
-
-      self.messageDisplay.config(state=NORMAL)
-      self.messageDisplay.insert(END, message)
-      self.messageDisplay.config(state=DISABLED)
+      if message[-2:] != "<br>":
+         message += "<br>"
+      self.chatBox.insertHtml(message)
       print(message[:-1])
 
     except Exception:
       ReportError()
 
-  def SendButtonClick(self, optionalReturnHandler=None):
-    SendMessage(self.messageInput.get(), self)
+  def onSendClick(self):
+    SendMessage(self.messageInput.text())
+    self.messageInput.setText("")
+
 
       
 class Packet:
@@ -97,12 +82,13 @@ class MessageListPacket(Packet):
     
 # Functions
 
-def SendMessage(message, gui):
+def SendMessage(message):
   try:
       global ServerSocket
-      newMessagePacket = MessagePacket(gui.messageInput.get(), Username) # Create a new message packet
+      global Username
+      newMessagePacket = MessagePacket(message, Username) # Create a new message packet
       ServerSocket.send(encode(newMessagePacket))
-      gui.messageInput.delete(0, END)
+      #gui.messageInput.delete(0, END)
 
   except Exception:
      ReportError()
@@ -117,18 +103,20 @@ def decode(packet):
   return pickle.loads(packet)
 
 def formatUsername(name):
-  return "<" + name + ">: "
+  return "[" + name + "]: "
 
 def onProgramExit():
   global ServerSocket
   print("Window closed: Force closing all threads and server socket")
   ServerSocket.close()
+  sys.exit(app.exec_())
   os._exit(1)
 
 
-def ListenForPackets(server, gui):
+def ListenForPackets(server):
   try:
     global ServerSocket
+    global MainGui
     while True:
       packet = decode(server.recv(1024))
 
@@ -141,38 +129,42 @@ def ListenForPackets(server, gui):
 
       elif packet.type == "MESSAGELIST":
         for element in packet.messageList:
-          if element[0] == "SILENT":  gui.WriteLine(element[1])
-          else: gui.WriteLine(formatUsername(element[0]) + element[1])
+          if element[0] == "SILENT":
+            MainGui.WriteLine(element[1])
+          else: MainGui.WriteLine(formatUsername(element[0]) + element[1])
              
       elif packet.type == "MESSAGE":
-        formatMessage(packet, gui)
+        formatMessage(packet)
         
   except Exception:
      ReportError()
 
-def formatMessage(packet, gui):
-  lineIndex = float(gui.messageDisplay.index('end')) - 1 # Get the line that the message will be on
-  usernameLength = len(formatUsername(packet.sender))
-  
-  packet.message, italicRanges = formatBalsamiq(packet.message, "_")
-  packet.message, boldRanges = formatBalsamiq(packet.message, "*")
-  
-  if packet.sender == "SILENT":  gui.WriteLine(packet.message) # Print the message
-  else: gui.WriteLine(formatUsername(packet.sender) + packet.message)
+def formatMessage(packet):
+  global MainGui
+##  lineIndex = float(gui.messageDisplay.index('end')) - 1 # Get the line that the message will be on
+##  usernameLength = len(formatUsername(packet.sender))
+##  
+##  packet.message, italicRanges = formatBalsamiq(packet.message, "_")
+##  packet.message, boldRanges = formatBalsamiq(packet.message, "*")
+##  
+##  
+##
+##  # Apply tags
+##  for italicRange in italicRanges: 
+##    italicStart = str(lineIndex)[:-2] + "." + str(italicRange[0] + usernameLength)
+##    italicEnd   = str(lineIndex)[:-2] + "." + str(italicRange[1] + usernameLength)
+##    gui.messageDisplay.tag_add("italic", italicStart, italicEnd)
+##    gui.messageDisplay.tag_config("italic", font=("Consolas", 10, "italic"))
+##  for boldRange in boldRanges: 
+##    boldStart = str(lineIndex)[:-2] + "." + str(boldRange[0] + usernameLength)
+##    boldEnd   = str(lineIndex)[:-2] + "." + str(boldRange[1] + usernameLength)
+##    gui.messageDisplay.tag_add("bold", boldStart, boldEnd)
+##    gui.messageDisplay.tag_config("bold", font=("Consolas", 10, "bold"))
+##    
+##  gui.master.update()
 
-  # Apply tags
-  for italicRange in italicRanges: 
-    italicStart = str(lineIndex)[:-2] + "." + str(italicRange[0] + usernameLength)
-    italicEnd   = str(lineIndex)[:-2] + "." + str(italicRange[1] + usernameLength)
-    gui.messageDisplay.tag_add("italic", italicStart, italicEnd)
-    gui.messageDisplay.tag_config("italic", font=("Consolas", 10, "italic"))
-  for boldRange in boldRanges: 
-    boldStart = str(lineIndex)[:-2] + "." + str(boldRange[0] + usernameLength)
-    boldEnd   = str(lineIndex)[:-2] + "." + str(boldRange[1] + usernameLength)
-    gui.messageDisplay.tag_add("bold", boldStart, boldEnd)
-    gui.messageDisplay.tag_config("bold", font=("Consolas", 10, "bold"))
-    
-  gui.master.update()
+  if packet.sender == "SILENT":  gui.WriteLine(packet.message) # Print the message
+  else: MainGui.WriteLine(formatUsername(packet.sender) + packet.message)
         
 
 def formatBalsamiq(message, specialChar):
@@ -221,13 +213,23 @@ def formatBalsamiq(message, specialChar):
 def __main__():
   global ServerSocket
   global Username
+  global MainGui
   atexit.register(onProgramExit)
+
+  # Print PyQt 'silent' errors 
+  sys._excepthook = sys.excepthook 
+  def exception_hook(exctype, value, traceback):
+    print(exctype, value, traceback)
+    sys._excepthook(exctype, value, traceback) 
+    sys.exit(1) 
+  sys.excepthook = exception_hook 
   
   Username = input("Enter username: ")
 
   # Display UI
-  root = Tk()
-  gui = UserInterface(root)
+  app = QApplication(sys.argv)
+  MainGui = MainWindow()
+  MainGui.show()
 
   # Create a socket object
   ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
@@ -241,13 +243,12 @@ def __main__():
 
   handshakePacket = ClientHandshakePacket(Username)
   ServerSocket.send(encode(handshakePacket))
-
-  # Start listener thread for server responses
-  listenerThread = Thread(target=ListenForPackets, args=(ServerSocket, gui))
-  listenerThread.start()
-
   
-  root.mainloop()
+  # Start listener thread for server responses
+  listenerThread = Thread(target=ListenForPackets, args=(ServerSocket,))
+  listenerThread.start()
+    
+  sys.exit(app.exec_())
   #serverSocket.close()
 
 
