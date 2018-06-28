@@ -111,7 +111,6 @@ def onProgramExit():
   global ServerSocket
   print("Window closed: Force closing all threads and server socket")
   ServerSocket.close()
-  sys.exit(app.exec_())
   os._exit(1)
 
 
@@ -143,7 +142,7 @@ def ListenForPackets(server):
 
 def formatMessage(packet):
   global MainGui
-  if packet.sender == "SILENT":  gui.WriteLine(packet.message) # Print the message
+  if packet.sender == "SILENT":  MainGui.WriteLine(packet.message) # Print the message
   else: MainGui.WriteLine(formatUsername(packet.sender) + packet.message)
         
 
