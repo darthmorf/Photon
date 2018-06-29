@@ -134,7 +134,7 @@ def __main__():
 
   # Get local machine name and assign a port
   host = socket.gethostname()                           
-  port = 9999                                           
+  port = 9998                                 
 
   # Bind to the port
   serverSocket.bind((host, port))

@@ -42,10 +42,14 @@ class MainWindow(QMainWindow):
     try:
       if message == "":
         return
-      if message[-2:] != "<br>":
+      if message[-4:] != "<br>":
          message += "<br>"
+
+      cursor = self.chatBox.textCursor()
+      cursor.setPosition(len(self.chatBox.toPlainText()))
+      self.chatBox.setTextCursor(cursor)
       self.chatBox.insertHtml(message)
-      print(message[:-1])
+      print(message[:-4])
 
     except Exception:
       ReportError()
@@ -53,7 +57,6 @@ class MainWindow(QMainWindow):
   def onSendClick(self):
     SendMessage(self.messageInput.text())
     self.messageInput.setText("")
-
 
       
 class Packet:
@@ -148,13 +151,47 @@ def formatMessage(packet):
 
 def formatForDisplay(message):
   try:
-    global NONBREAKINGSPACE
-    message = cgi.escape(message) # Escape html
-    # replace balsamiq chars in pairs with html
+    message = cgi.escape(message) # Escape html code; sanitise input
+    #message = message.replace("&amp;", "&") # We want to keep ampersands so we wil reverse the escape on them
+    # Replace balsamiq chars in pairs with html
+    message = formatBalsmaiq(message, "*", "b")
+    message = formatBalsmaiq(message, "_", "i")
+    message = formatBalsmaiq(message, "~", "s")
+    message = formatBalsmaiq(message, "!", "u")
 
     return message
   except Exception:
      ReportError()
+
+def formatBalsmaiq(message, specialChar, tag):
+  global NONPRINTINGCHAR
+  charInstances = []
+  i = 0
+  while True: # Locate all instances of special char within message
+    charInstance = message.find(specialChar, i)
+    if charInstance == -1:
+      break
+    else:
+      charInstances.append(charInstance)
+      i = charInstance + 1
+  message = list(message) # Convert to list so we can substitute chars by index
+  i = 0
+  for charInstance in charInstances: # Ensure character is not escaped by '\'
+    if message[charInstance - 1] == "\\":
+      message[charInstance - 1] = NONPRINTINGCHAR
+      del charInstances[i]
+    else:
+      i+= 1
+
+  if len(charInstances) % 2 != 0: # Ignore special chars without a pair
+    charInstances = charInstances[:-1]
+
+  for i in range(0, len(charInstances), 2): # Replace pairs of balsamiq with html code
+    message[charInstances[i]] = "<" + tag + ">"
+    message[charInstances[i + 1]] = "</" + tag + ">"
+
+  message = "".join(message) # Convert back to string
+  return message
 
 def __main__():
   global ServerSocket
@@ -182,7 +219,7 @@ def __main__():
 
   # Get local machine name and assign a port
   host = socket.gethostname()
-  port = 9999
+  port = 9998
 
   # Connect to hostname on the port.
   ServerSocket.connect((host, port))
