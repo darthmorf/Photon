@@ -3,7 +3,7 @@
 import sys
 
 from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
 from PyQt5.uic import loadUi
 
 import socket
@@ -14,6 +14,7 @@ import atexit
 import os
 import re
 import cgi
+import time
 
 # Load packet classes from shared libs
 import sys
@@ -37,11 +38,12 @@ class MainWindow(QMainWindow):
       loadUi("mainWindow.ui", self)
       self.messageInputButton.clicked.connect(self.onSendClick)
       self.messageInput.returnPressed.connect(self.onSendClick)
-      global Username
-      self.usernameLabel.setText("Logged in as " + Username)
       
     except Exception:
       ReportError()
+
+  def setUsername(self, username):
+    self.usernameLabel.setText("Logged in as " + username)
 
   def closeEvent(self, event):
     # Not using onProgramExit() as it caused the program to hang when the UI is created
@@ -71,7 +73,24 @@ class MainWindow(QMainWindow):
   def onSendClick(self):
     SendMessage(self.messageInput.text())
     self.messageInput.setText("")
+
+
+class LoginWindow(QDialog):
+  def __init__(self, *args):
+    super(LoginWindow, self).__init__(*args)
+    loadUi("login.ui", self)
+    self.loginButton.clicked.connect(self.onLoginClick)
+    self.usernameInput.returnPressed.connect(self.onLoginClick)
+
+  def onLoginClick(self):
+    username = self.usernameInput.text()
     
+    if not username.isspace() and username != "":
+      global Username
+      Username = username
+      self.close()
+    else:
+      self.errLabel.setText("Usernames must not consist of whitespace only")
     
 # Functions
 
@@ -181,7 +200,6 @@ def formatBalsmaiq(message, specialChar, tag):
 
 def __main__():
   global ServerSocket
-  global Username
   global MainGui
   atexit.register(onProgramExit)
 
@@ -192,12 +210,16 @@ def __main__():
     sys._excepthook(exctype, value, traceback) 
     sys.exit(1) 
   sys.excepthook = exception_hook 
-  
-  Username = input("Enter username: ")
 
   # Display UI
   app = QApplication(sys.argv)
   MainGui = MainWindow()
+  loginGui = LoginWindow()
+  loginGui.exec_()
+  global Username
+  if Username == "":
+    os._exit(1)
+  MainGui.setUsername(Username)
   MainGui.show()
 
   # Create a socket object
