@@ -72,8 +72,10 @@ class MainWindow(QMainWindow):
       ReportError()
 
   def onSendClick(self):
-    SendMessage(self.messageInput.text())
-    self.messageInput.setText("")
+    text = self.messageInput.text()
+    if not text.isspace() and text != "":
+      SendMessage(text)
+      self.messageInput.setText("")
 
 
 class LoginWindow(QDialog):
