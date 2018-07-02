@@ -66,16 +66,17 @@ class Client:
 
     except ConnectionResetError: # Lost connection with client
       print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
-
-      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SILENT")
-      Messages.append([announceUserPacket.sender, announceUserPacket.message])
-      SendToClients(announceUserPacket)
       
       self.socket.close() # Close socket
       global Clients
       for i in range(0, len(Clients)):
         if Clients[i].id == self.id:
           del Clients[i] # Delete class instance
+          break
+
+      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SILENT")
+      Messages.append([announceUserPacket.sender, announceUserPacket.message])
+      SendToClients(announceUserPacket)
           
       return # Return from Listen thread
       
