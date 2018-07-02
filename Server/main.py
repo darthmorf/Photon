@@ -5,6 +5,7 @@ from threading import *
 import pickle
 import traceback
 import select
+import sqlite3
 
 # Load packet classes from shared libs
 import sys
@@ -15,26 +16,58 @@ from packets import *
 
 Messages = [["Server","Hello"], ["Server","World"]]
 Clients  = []
+Database = ""
 
 MAXTRANSMISSIONSIZE = 4096
 
+
 # Classes
+
+class DataBase:
+  def __init__(self):
+    self.connection = sqlite3.connect("photon.db")
+    self.cursor = self.connection.cursor()
+
+  def QueryLogin(self, username, password):
+    self.cursor.execute("select * from Users")
+    users = self.cursor.fetchall()
+    for user in users:
+      if user[1] == username and user[2] == password:
+        return True
+    return False
+
 
 class Client:
   def __init__(self, clientSocket, clientAddress):
     try:
       global Messages
+      global Database
+      global Clients
       self.socket = clientSocket
       self.address = clientAddress[0]
       self.id = clientAddress[1]
       self.thread = None
       self.username = "UNKNOWN"
+      Clients.append(self)
 
       print("Got a connection from " + str(self.address) + ", id " + str(self.id))
 
       handshakePacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for client handshake TODO: time this out
-      self.username = handshakePacket.username
 
+      # Check login details against database, and if invalid kill thread
+      # TODO: Tell the client it's invalid!
+      self.username = handshakePacket.username
+      valid = Database.QueryLogin(handshakePacket.username, handshakePacket.password)
+      if not valid:
+        print("Invalid login from: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
+      
+        self.socket.close() # Close socket
+        for i in range(0, len(Clients)):
+          if Clients[i].id == self.id:
+            del Clients[i] # Delete class instance
+            return
+
+      
       announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SILENT")
       Messages.append([announceUserPacket.sender, announceUserPacket.message])
       SendToClients(announceUserPacket)
@@ -109,6 +142,9 @@ def decode(packet):
   return pickle.loads(packet)
 
 def __main__():
+  global Database
+  Database = DataBase()  
+  
   # Create a socket object
   serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
@@ -129,7 +165,6 @@ def __main__():
     # Wait for connections
     clientSocket, clientAddress = serverSocket.accept()
     newClient = Client(clientSocket, clientAddress)
-    Clients.append(newClient)
 
 
 if __name__ == "__main__":

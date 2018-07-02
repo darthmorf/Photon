@@ -63,9 +63,9 @@
     </widget>
    </item>
    <item row="3" column="1">
-    <widget class="QLineEdit" name="pwInputer">
+    <widget class="QLineEdit" name="passwordInput">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
     </widget>
    </item>

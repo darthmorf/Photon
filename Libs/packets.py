@@ -3,9 +3,10 @@ class Packet:
     self.type = packetType
 
 class ClientHandshakePacket(Packet):
-  def __init__(self, username):
+  def __init__(self, username, password):
     Packet.__init__(self, "CLIENTHANDSHAKE")
     self.username = username
+    self.password = password
 
 class PingPacket(Packet):
   def __init__(self, response):

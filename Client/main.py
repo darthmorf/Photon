@@ -26,6 +26,7 @@ from packets import *
 MainGui = None
 ServerSocket = None
 Username = ""
+Password = ""
 
 NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
 MAXTRANSMISSIONSIZE = 4096
@@ -86,14 +87,25 @@ class LoginWindow(QDialog):
     self.usernameInput.returnPressed.connect(self.onLoginClick)
 
   def onLoginClick(self):
+    global Username
+    global Password
     username = self.usernameInput.text()
+    password = self.passwordInput.text()
     
     if not username.isspace() and username != "":
-      global Username
       Username = username
-      self.close()
+
+      if not password.isspace() and password != "":
+        Password = password
+        self.close()
+        
+      else:
+        self.errLabel.setText("Passwords must not consist of whitespace only")
+      
     else:
       self.errLabel.setText("Usernames must not consist of whitespace only")
+
+    
     
 # Functions
 
@@ -204,6 +216,8 @@ def formatBalsmaiq(message, specialChar, tag):
 def __main__():
   global ServerSocket
   global MainGui
+  global Username
+  global Password
   atexit.register(onProgramExit)
 
   # Print PyQt 'silent' errors 
@@ -219,7 +233,6 @@ def __main__():
   MainGui = MainWindow()
   loginGui = LoginWindow()
   loginGui.exec_()
-  global Username
   if Username == "":
     os._exit(1)
   MainGui.setUsername(Username)
@@ -235,7 +248,7 @@ def __main__():
   # Connect to hostname on the port.
   ServerSocket.connect((host, port))
 
-  handshakePacket = ClientHandshakePacket(Username)
+  handshakePacket = ClientHandshakePacket(Username, Password)
   ServerSocket.send(encode(handshakePacket))
   
   # Start listener thread for server responses
