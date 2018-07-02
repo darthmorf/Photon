@@ -15,6 +15,11 @@ import os
 import re
 import cgi
 
+# Load packet classes from shared libs
+import sys
+sys.path.insert(0, '../Libs')
+from packets import *
+
 # Global vars
 
 MainGui = None
@@ -35,6 +40,13 @@ class MainWindow(QMainWindow):
       
     except Exception:
       ReportError()
+
+  def closeEvent(self, event):
+    # Not using onProgramExit() as it caused the program to hang when the UI is created
+    global ServerSocket
+    print("Window closed: Force closing all threads and server socket")
+    ServerSocket.close()
+    os._exit(1)
 
     
   def WriteLine(self, message):
@@ -57,32 +69,6 @@ class MainWindow(QMainWindow):
   def onSendClick(self):
     SendMessage(self.messageInput.text())
     self.messageInput.setText("")
-
-      
-class Packet:
-  def __init__(self, packetType):
-    self.type = packetType
-
-class ClientHandshakePacket(Packet):
-  def __init__(self, username):
-    Packet.__init__(self, "CLIENTHANDSHAKE")
-    self.username = username
-
-class PingPacket(Packet):
-  def __init__(self, response):
-    Packet.__init__(self, "PING")
-    self.response = response
-
-class MessagePacket(Packet):
-  def __init__(self, message, sender):
-    Packet.__init__(self, "MESSAGE")
-    self.message = message
-    self.sender = sender
-
-class MessageListPacket(Packet):
-  def __init__(self, messageList):
-    Packet.__init__(self, "MESSAGELIST")
-    self.messageList = messageList
     
     
 # Functions
@@ -93,7 +79,6 @@ def SendMessage(message):
       global Username
       newMessagePacket = MessagePacket(message, Username) # Create a new message packet
       ServerSocket.send(encode(newMessagePacket))
-      #gui.messageInput.delete(0, END)
 
   except Exception:
      ReportError()
@@ -152,7 +137,6 @@ def formatMessage(packet):
 def formatForDisplay(message):
   try:
     message = cgi.escape(message) # Escape html code; sanitise input
-    #message = message.replace("&amp;", "&") # We want to keep ampersands so we wil reverse the escape on them
     # Replace balsamiq chars in pairs with html
     message = formatBalsmaiq(message, "*", "b")
     message = formatBalsmaiq(message, "_", "i")
@@ -232,7 +216,6 @@ def __main__():
   listenerThread.start()
     
   sys.exit(app.exec_())
-  #serverSocket.close()
 
 
 if __name__ == "__main__":
