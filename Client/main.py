@@ -37,6 +37,8 @@ class MainWindow(QMainWindow):
       loadUi("mainWindow.ui", self)
       self.messageInputButton.clicked.connect(self.onSendClick)
       self.messageInput.returnPressed.connect(self.onSendClick)
+      global Username
+      self.usernameLabel.setText("Logged in as " + Username)
       
     except Exception:
       ReportError()
