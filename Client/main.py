@@ -28,6 +28,7 @@ ServerSocket = None
 Username = ""
 
 NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
+MAXTRANSMISSIONSIZE = 4096
 
 # Classes
 
@@ -128,7 +129,7 @@ def ListenForPackets(server):
     global ServerSocket
     global MainGui
     while True:
-      packet = decode(server.recv(1024))
+      packet = decode(server.recv(MAXTRANSMISSIONSIZE))
 
       if packet.type == "PING":
         if packet.response == True:

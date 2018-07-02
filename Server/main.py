@@ -16,6 +16,7 @@ from packets import *
 Messages = [["Server","Hello"], ["Server","World"]]
 Clients  = []
 
+MAXTRANSMISSIONSIZE = 4096
 
 # Classes
 
@@ -31,7 +32,7 @@ class Client:
 
       print("Got a connection from " + str(self.address) + ", id " + str(self.id))
 
-      handshakePacket = decode(self.socket.recv(1024)) # Wait for client handshake TODO: time this out
+      handshakePacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for client handshake TODO: time this out
       self.username = handshakePacket.username
 
       announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SILENT")
@@ -52,7 +53,7 @@ class Client:
       global Messages
       while True:
         
-        packet = decode(self.socket.recv(1024)) # Wait for message from client
+        packet = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for message from client
         if packet.type == "PING": # Ping response from client
           if packet.response == True:
             print("pong") #TODO do stuff
