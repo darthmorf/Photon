@@ -14,10 +14,6 @@ class LoginResponsePacket(Packet):
     self.valid = valid
     self.errCode = errCode
 
-class ReadyToListenPacket(Packet):
-  def __init__(self):
-    Packet.__init__(self, "READYTOLISTEN")
-
 class RegisterPacket(Packet):
   def __init__(self, username, password):
     Packet.__init__(self, "CREATEUSER")

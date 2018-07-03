@@ -187,7 +187,7 @@ def ListenForPackets(server):
     global ServerSocket
     global MainGui
   
-    readyToListen = ReadyToListenPacket()
+    readyToListen = Packet("READYTOLISTEN") # Tell the server we are ready to listen using generic packet
     ServerSocket.send(encode(readyToListen))
     
     while True:
