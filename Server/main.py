@@ -36,6 +36,10 @@ class DataBase:
         return True
     return False
 
+  def AddUser(self, username, password):
+    self.cursor.execute("insert into Users(name, password) values ('" + username + "', '" + password + "')")
+    self.connection.commit()
+
 
 class Client:
   def __init__(self, clientSocket, clientAddress):
@@ -56,18 +60,25 @@ class Client:
       loginInvalid = True
       while loginInvalid:
         loginRequestPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for client login packet TODO: time this out
-        self.username = loginRequestPacket.username
-        valid = Database.QueryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
-        if not valid:
-          print("Invalid login from: " + str(self.address) + ", id " + str(self.id))
-          loginResponse = LoginResponsePacket(False) # Tell the client the login was invalid
-          self.socket.send(encode(loginResponse))
 
+        if loginRequestPacket.type == "CREATEUSER":
+          Database.AddUser(loginRequestPacket.username, loginRequestPacket.password)
+          userRegistered = Packet("REGISTERDONE")
+          self.socket.send(encode(Packet))
+        
         else:
-          print("Valid login from: " + str(self.address) + ", id " + str(self.id))
-          loginResponse = LoginResponsePacket(True) # Tell the client the login was valid
-          self.socket.send(encode(loginResponse))
-          loginInvalid = False
+          self.username = loginRequestPacket.username
+          valid = Database.QueryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
+          if not valid:
+            print("Invalid login from: " + str(self.address) + ", id " + str(self.id))
+            loginResponse = LoginResponsePacket(False) # Tell the client the login was invalid
+            self.socket.send(encode(loginResponse))
+
+          else:
+            print("Valid login from: " + str(self.address) + ", id " + str(self.id))
+            loginResponse = LoginResponsePacket(True) # Tell the client the login was valid
+            self.socket.send(encode(loginResponse))
+            loginInvalid = False
           
       readyToListenPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait until the client is ready to receive packets
 
@@ -109,7 +120,7 @@ class Client:
         if packet.type == "MESSAGE":
           Messages.append([packet.sender, packet.message])
           SendToClients(packet)
-
+      
     except ConnectionResetError: # Lost connection with client
       print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
       

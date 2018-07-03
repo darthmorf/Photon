@@ -16,7 +16,13 @@ class LoginResponsePacket(Packet):
 
 class ReadyToListenPacket(Packet):
   def __init__(self):
-    Packet.__init__(self, "READTOLISTEN")
+    Packet.__init__(self, "READYTOLISTEN")
+
+class RegisterPacket(Packet):
+  def __init__(self, username, password):
+    Packet.__init__(self, "CREATEUSER")
+    self.username = username
+    self.password = password
 
 class MessagePacket(Packet):
   def __init__(self, message, sender):

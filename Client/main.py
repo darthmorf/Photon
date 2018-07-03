@@ -83,7 +83,12 @@ class LoginWindow(QDialog):
     super(LoginWindow, self).__init__(*args)
     loadUi("login.ui", self)
     self.loginButton.clicked.connect(self.onLoginClick)
+    self.newAccButton.clicked.connect(self.openRegisterWindow)
     self.usernameInput.returnPressed.connect(self.onLoginClick)
+
+  def openRegisterWindow(self):
+    registerGui = RegisterWindow()
+    registerGui.exec_()
 
   def onLoginClick(self):
     global Username
@@ -115,7 +120,36 @@ class LoginWindow(QDialog):
       
     else:
       self.errLabel.setText("Incorrect username or password")
-       
+
+
+class RegisterWindow(QDialog):
+  def __init__(self, *args):
+    super(RegisterWindow, self).__init__(*args)
+    loadUi("register.ui", self)
+    self.registerButton.clicked.connect(self.validateInputs)
+
+  def validateInputs(self):
+    username = self.usernameInput.text()
+    password1 = self.passwordInput1.text()
+    password2 = self.passwordInput2.text()
+
+    if not username.isspace() and username != "":
+      if password1 == password2:
+        if not password1.isspace() and password1 != "":
+          self.register(username, password1)
+        else:
+          self.errLabel.setText("Passwords must not consist of whitespace only")
+      else:
+        self.errLabel.setText("Passwords must match")
+    else:
+      self.errLabel.setText("Usernames must not consist of whitespace only")
+
+  def register(self, username, password):
+    registerPacket = RegisterPacket(username, password)
+    global ServerSocket
+    ServerSocket.send(encode(registerPacket))
+    userCreatePacket = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE)) # Wait for user to be created
+    self.close()
     
 # Functions
 

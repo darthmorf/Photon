@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>LoginDialog</class>
- <widget class="QDialog" name="LoginDialog">
+ <class>RegisterDialog</class>
+ <widget class="QDialog" name="RegisterDialog">
   <property name="windowModality">
    <enum>Qt::ApplicationModal</enum>
   </property>
@@ -12,8 +12,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>248</width>
-    <height>168</height>
+    <width>303</width>
+    <height>175</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -24,12 +24,18 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>248</width>
-    <height>133</height>
+    <width>303</width>
+    <height>175</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>303</width>
+    <height>175</height>
    </size>
   </property>
   <property name="windowTitle">
-   <string>Photon - Login</string>
+   <string>Photon - Register</string>
   </property>
   <property name="windowIcon">
    <iconset>
@@ -42,7 +48,7 @@
    <item row="1" column="0">
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Username:</string>
+      <string>Enter Username</string>
      </property>
     </widget>
    </item>
@@ -52,39 +58,42 @@
    <item row="3" column="0">
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>Password:</string>
+      <string>Enter Password</string>
      </property>
     </widget>
    </item>
    <item row="3" column="1">
-    <widget class="QLineEdit" name="passwordInput">
+    <widget class="QLineEdit" name="passwordInput1">
      <property name="enabled">
       <bool>true</bool>
      </property>
     </widget>
    </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="label_5">
+     <property name="text">
+      <string>Re-enter Password</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="1">
+    <widget class="QPushButton" name="registerButton">
+     <property name="text">
+      <string>Register</string>
+     </property>
+    </widget>
+   </item>
    <item row="4" column="1">
-    <widget class="QPushButton" name="loginButton">
-     <property name="text">
-      <string>Login</string>
-     </property>
-    </widget>
+    <widget class="QLineEdit" name="passwordInput2"/>
    </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="label_3">
-     <property name="font">
-      <font>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="text">
-      <string>Photon  -</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0" colspan="2">
+   <item row="8" column="0" colspan="2">
     <widget class="QLabel" name="errLabel">
+     <property name="maximumSize">
+      <size>
+       <width>285</width>
+       <height>13</height>
+      </size>
+     </property>
      <property name="palette">
       <palette>
        <active>
@@ -127,10 +136,16 @@
      </property>
     </widget>
    </item>
-   <item row="6" column="0" colspan="2">
-    <widget class="QPushButton" name="newAccButton">
+   <item row="0" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
      <property name="text">
-      <string>Create New Account</string>
+      <string>Photon          - </string>
      </property>
     </widget>
    </item>
@@ -143,7 +158,7 @@
       </font>
      </property>
      <property name="text">
-      <string>Login</string>
+      <string>Register</string>
      </property>
     </widget>
    </item>
