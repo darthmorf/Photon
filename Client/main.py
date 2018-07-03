@@ -145,14 +145,7 @@ def ListenForPackets(server):
     while True:
       packet = decode(server.recv(MAXTRANSMISSIONSIZE))
 
-      if packet.type == "PING":
-        if packet.response == True:
-          print("Pong")# will do more later
-        elif packet.response == False: # Ping is not a response; the server wants a response
-          newPingPacket = PingPacket(True)
-          ServerSocket.send(encode(newPingPacket))
-
-      elif packet.type == "MESSAGELIST":
+      if packet.type == "MESSAGELIST":
         for element in packet.messageList:
           if element[0] == "SILENT":
             MainGui.WriteLine(element[1])

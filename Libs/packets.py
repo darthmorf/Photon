@@ -8,10 +8,6 @@ class ClientHandshakePacket(Packet):
     self.username = username
     self.password = password
 
-class PingPacket(Packet):
-  def __init__(self, response):
-    Packet.__init__(self, "PING")
-    self.response = response
 
 class MessagePacket(Packet):
   def __init__(self, message, sender):

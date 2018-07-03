@@ -87,14 +87,7 @@ class Client:
       while True:
         
         packet = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for message from client
-        if packet.type == "PING": # Ping response from client
-          if packet.response == True:
-            print("pong") #TODO do stuff
-          elif packet.response == False: # Ping is not a response; the client wants a response
-            newPingPacket = PingPacket(True) 
-            self.socket.send(encode(newPingPacket))
-
-        elif packet.type == "MESSAGE":
+        if packet.type == "MESSAGE":
           Messages.append([packet.sender, packet.message])
           SendToClients(packet)
 
