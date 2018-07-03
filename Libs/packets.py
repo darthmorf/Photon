@@ -2,12 +2,21 @@ class Packet:
   def __init__(self, packetType):
     self.type = packetType
 
-class ClientHandshakePacket(Packet):
+class LoginRequestPacket(Packet):
   def __init__(self, username, password):
-    Packet.__init__(self, "CLIENTHANDSHAKE")
+    Packet.__init__(self, "LOGINREQUEST")
     self.username = username
     self.password = password
 
+class LoginResponsePacket(Packet):
+  def __init__(self, valid, errCode=0):
+    Packet.__init__(self, "LOGINRESPONSE")
+    self.valid = valid
+    self.errCode = errCode
+
+class ReadyToListenPacket(Packet):
+  def __init__(self):
+    Packet.__init__(self, "READTOLISTEN")
 
 class MessagePacket(Packet):
   def __init__(self, message, sender):

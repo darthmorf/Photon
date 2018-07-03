@@ -25,10 +25,10 @@ MAXTRANSMISSIONSIZE = 4096
 
 class DataBase:
   def __init__(self):
-    self.connection = sqlite3.connect("photon.db")
+    self.connection = sqlite3.connect("photon.db") # Load database from file
     self.cursor = self.connection.cursor()
 
-  def QueryLogin(self, username, password):
+  def QueryLogin(self, username, password): # Return true if username & password are valid
     self.cursor.execute("select * from Users")
     users = self.cursor.fetchall()
     for user in users:
@@ -50,36 +50,55 @@ class Client:
       self.username = "UNKNOWN"
       Clients.append(self)
 
-      print("Got a connection from " + str(self.address) + ", id " + str(self.id))
+      print("Received a connection from " + str(self.address) + ", id " + str(self.id))
 
-      handshakePacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for client handshake TODO: time this out
+      # Client Login
+      loginInvalid = True
+      while loginInvalid:
+        loginRequestPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for client login packet TODO: time this out
+        self.username = loginRequestPacket.username
+        valid = Database.QueryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
+        if not valid:
+          print("Invalid login from: " + str(self.address) + ", id " + str(self.id))
+          loginResponse = LoginResponsePacket(False) # Tell the client the login was invalid
+          self.socket.send(encode(loginResponse))
 
-      # Check login details against database, and if invalid kill thread
-      # TODO: Tell the client it's invalid!
-      self.username = handshakePacket.username
-      valid = Database.QueryLogin(handshakePacket.username, handshakePacket.password)
-      if not valid:
-        print("Invalid login from: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
+        else:
+          print("Valid login from: " + str(self.address) + ", id " + str(self.id))
+          loginResponse = LoginResponsePacket(True) # Tell the client the login was valid
+          self.socket.send(encode(loginResponse))
+          loginInvalid = False
+          
+      readyToListenPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait until the client is ready to receive packets
+
+      newMessageListPacket = MessageListPacket(Messages) # Send the client the previous messages
+      self.socket.send(encode(newMessageListPacket))
       
-        self.socket.close() # Close socket
-        for i in range(0, len(Clients)):
-          if Clients[i].id == self.id:
-            del Clients[i] # Delete class instance
-            return
-
-      
-      announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SILENT")
+      announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SILENT") # Client has joined message
       Messages.append([announceUserPacket.sender, announceUserPacket.message])
       SendToClients(announceUserPacket)
 
-      newMessageListPacket = MessageListPacket(Messages)
-      self.socket.send(encode(newMessageListPacket))
-      
-      self.listenerThread = Thread(target=self.ListenForPackets)
+      self.listenerThread = Thread(target=self.ListenForPackets) # Start thread to listen for packets from client
       self.listenerThread.start()
-     
+
+    except ConnectionResetError: # Lost connection with client
+      print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
+      
+      self.socket.close() # Close socket
+      for i in range(0, len(Clients)):
+        if Clients[i].id == self.id:
+          del Clients[i] # Delete class instance
+          break
+
+      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SILENT")
+      Messages.append([announceUserPacket.sender, announceUserPacket.message])
+      SendToClients(announceUserPacket)
+          
+      return # Return from thread
+    
     except Exception:
       ReportError()
+
 
   def ListenForPackets(self):
     try:
@@ -104,9 +123,7 @@ class Client:
       announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SILENT")
       Messages.append([announceUserPacket.sender, announceUserPacket.message])
       SendToClients(announceUserPacket)
-          
-      return # Return from Listen thread
-      
+
     except Exception:
       ReportError()
 

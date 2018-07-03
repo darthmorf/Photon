@@ -26,7 +26,6 @@ from packets import *
 MainGui = None
 ServerSocket = None
 Username = ""
-Password = ""
 
 NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
 MAXTRANSMISSIONSIZE = 4096
@@ -88,16 +87,14 @@ class LoginWindow(QDialog):
 
   def onLoginClick(self):
     global Username
-    global Password
     username = self.usernameInput.text()
     password = self.passwordInput.text()
     
     if not username.isspace() and username != "":
-      Username = username
 
       if not password.isspace() and password != "":
         Password = password
-        self.close()
+        self.Login(username, password)
         
       else:
         self.errLabel.setText("Passwords must not consist of whitespace only")
@@ -105,7 +102,20 @@ class LoginWindow(QDialog):
     else:
       self.errLabel.setText("Usernames must not consist of whitespace only")
 
-    
+  def Login(self, username, password):
+    global ServerSocket
+    global Username
+    loginRequest = LoginRequestPacket(username, password)
+    ServerSocket.send(encode(loginRequest))
+
+    loginResponsePacket = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE))
+    if loginResponsePacket.valid:
+      self.close()
+      Username = username
+      
+    else:
+      self.errLabel.setText("Incorrect username or password")
+       
     
 # Functions
 
@@ -142,6 +152,10 @@ def ListenForPackets(server):
   try:
     global ServerSocket
     global MainGui
+  
+    readyToListen = ReadyToListenPacket()
+    ServerSocket.send(encode(readyToListen))
+    
     while True:
       packet = decode(server.recv(MAXTRANSMISSIONSIZE))
 
@@ -219,17 +233,7 @@ def __main__():
     print(exctype, value, traceback)
     sys._excepthook(exctype, value, traceback) 
     sys.exit(1) 
-  sys.excepthook = exception_hook 
-
-  # Display UI
-  app = QApplication(sys.argv)
-  MainGui = MainWindow()
-  loginGui = LoginWindow()
-  loginGui.exec_()
-  if Username == "":
-    os._exit(1)
-  MainGui.setUsername(Username)
-  MainGui.show()
+  sys.excepthook = exception_hook
 
   # Create a socket object
   ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
@@ -241,8 +245,15 @@ def __main__():
   # Connect to hostname on the port.
   ServerSocket.connect((host, port))
 
-  handshakePacket = ClientHandshakePacket(Username, Password)
-  ServerSocket.send(encode(handshakePacket))
+  # Display UI
+  app = QApplication(sys.argv)
+  MainGui = MainWindow()
+  loginGui = LoginWindow()
+  loginGui.exec_()
+  if Username == "": # Window was closed without an input
+    os._exit(1)
+  MainGui.setUsername(Username)
+  MainGui.show()
   
   # Start listener thread for server responses
   listenerThread = Thread(target=ListenForPackets, args=(ServerSocket,))
