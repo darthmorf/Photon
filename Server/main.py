@@ -25,20 +25,37 @@ MAXTRANSMISSIONSIZE = 4096
 
 class DataBase:
   def __init__(self):
-    self.connection = sqlite3.connect("photon.db") # Load database from file
-    self.cursor = self.connection.cursor()
+    self.roConnection = sqlite3.connect("file:photon.db?mode=ro", uri=True) # Load database from file in read only mode
+    self.roCursor = self.roConnection.cursor()
+    self.writeQueue = []
+    self.writeThread = Thread(target=self.DbWriter)
+    self.writeThread.start()
+    
+  def DbWriter(self): # All writes to the database done from one thread and queued
+      connection = sqlite3.connect("photon.db")
+      cursor = connection.cursor()
+      while True:
+        if len(self.writeQueue) > 0:
+          cursor.execute(self.writeQueue[0])
+          connection.commit()
+          del self.writeQueue[0]
+      connection.close()
 
   def QueryLogin(self, username, password): # Return true if username & password are valid
-    self.cursor.execute("select * from Users")
-    users = self.cursor.fetchall()
-    for user in users:
+    self.roCursor.execute("select * from Users")
+    users = self.roCursor.fetchall()
+    for user in users: # [0]: id [1]: name [2]: password
       if user[1] == username and user[2] == password:
-        return True
-    return False
+        return [True, user[0]]
+    return [False]
 
   def AddUser(self, username, password):
-    self.cursor.execute("insert into Users(name, password) values ('" + username + "', '" + password + "')")
-    self.connection.commit()
+    self.writeQueue.append("insert into Users(name, password) values ('" + username + "', '" + password + "')")
+
+  def AddMessage(self, userid, username, message):
+    global Messages
+    Messages.append([message, username])
+    self.writeQueue.append("insert into Messages(senderId, message) values ('" + str(userid) + "', '" + message + "')")
 
 
 class Client:
@@ -52,6 +69,7 @@ class Client:
       self.id = clientAddress[1]
       self.thread = None
       self.username = "UNKNOWN"
+      self.userid = ""
       Clients.append(self)
 
       print("Received a connection from " + str(self.address) + ", id " + str(self.id))
@@ -68,7 +86,8 @@ class Client:
         
         else:
           self.username = loginRequestPacket.username
-          valid = Database.QueryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
+          ret = Database.QueryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
+          valid = ret[0]
           if not valid:
             print("Invalid login from: " + str(self.address) + ", id " + str(self.id))
             loginResponse = LoginResponsePacket(False) # Tell the client the login was invalid
@@ -78,6 +97,7 @@ class Client:
             print("Valid login from: " + str(self.address) + ", id " + str(self.id))
             loginResponse = LoginResponsePacket(True) # Tell the client the login was valid
             self.socket.send(encode(loginResponse))
+            self.userid = ret[1]
             loginInvalid = False
           
       readyToListenPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait until the client is ready to receive packets
@@ -86,7 +106,7 @@ class Client:
       self.socket.send(encode(newMessageListPacket))
       
       announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SILENT") # Client has joined message
-      Messages.append([announceUserPacket.sender, announceUserPacket.message])
+      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message)
       SendToClients(announceUserPacket)
 
       self.listenerThread = Thread(target=self.ListenForPackets) # Start thread to listen for packets from client
@@ -102,7 +122,7 @@ class Client:
           break
 
       announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SILENT")
-      Messages.append([announceUserPacket.sender, announceUserPacket.message])
+      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message)
       SendToClients(announceUserPacket)
           
       return # Return from thread
@@ -118,7 +138,7 @@ class Client:
         
         packet = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for message from client
         if packet.type == "MESSAGE":
-          Messages.append([packet.sender, packet.message])
+          Database.AddMessage(self.userid, packet.sender, packet.message)
           SendToClients(packet)
       
     except ConnectionResetError: # Lost connection with client
@@ -132,7 +152,7 @@ class Client:
           break
 
       announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SILENT")
-      Messages.append([announceUserPacket.sender, announceUserPacket.message])
+      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message)
       SendToClients(announceUserPacket)
 
     except Exception:
