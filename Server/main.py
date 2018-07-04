@@ -55,6 +55,17 @@ class DataBase:
     return [False]
 
 
+  def LoadMessages(self): # Load last x messages from database
+    global Messages
+    lastX = 50
+    self.roCursor.execute("select * from Messages limit " + str(lastX) + " offset (select count(*) from Messages)-" + str(lastX))
+    messages = self.roCursor.fetchall()
+    for message in messages:
+      self.roCursor.execute("SELECT name FROM Users WHERE id == " + str(message[1]))
+      username = self.roCursor.fetchall()[0][0]
+      Messages.append([username, message[2]])
+
+  
   def AddUser(self, username, password):
     self.writeQueue.append("insert into Users(name, password) values ('" + username + "', '" + password + "')")
 
@@ -110,10 +121,11 @@ class Client:
           
       readyToListenPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait until the client is ready to receive packets
 
+      Database.LoadMessages()
       newMessageListPacket = MessageListPacket(Messages) # Send the client the previous messages
       self.socket.send(encode(newMessageListPacket))
       
-      announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SILENT") # Client has joined message
+      announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SERVER") # Client has joined message
       Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message)
       SendToClients(announceUserPacket)
 
@@ -129,7 +141,7 @@ class Client:
           del Clients[i] # Delete class instance
           break
 
-      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SILENT")
+      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER")
       Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message)
       SendToClients(announceUserPacket)
           
@@ -159,7 +171,7 @@ class Client:
           del Clients[i] # Delete class instance
           break
 
-      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SILENT")
+      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER")
       Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message)
       SendToClients(announceUserPacket)
 

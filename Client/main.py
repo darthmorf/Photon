@@ -211,7 +211,7 @@ def ListenForPackets(server):
 
       if packet.type == "MESSAGELIST":
         for element in packet.messageList:
-          if element[0] == "SILENT":
+          if element[0] == "SERVER":
             MainGui.WriteLine(element[1])
           else: MainGui.WriteLine(formatUsername(element[0]) + element[1])
              
@@ -224,7 +224,7 @@ def ListenForPackets(server):
 
 def formatMessage(packet):
   global MainGui
-  if packet.sender == "SILENT":  MainGui.WriteLine(packet.message) # Print the message
+  if packet.sender == "SERVER":  MainGui.WriteLine(packet.message) # Print the message
   else: MainGui.WriteLine(formatUsername(packet.sender) + packet.message)
         
 
