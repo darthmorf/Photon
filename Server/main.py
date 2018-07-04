@@ -12,13 +12,16 @@ import sys
 sys.path.insert(0, '../Libs')
 from packets import *
 
+
+
 # Global Variables
 
-Messages = [["Server","Hello"], ["Server","World"]]
+Messages = []
 Clients  = []
 Database = ""
 
 MAXTRANSMISSIONSIZE = 4096
+
 
 
 # Classes
@@ -30,6 +33,7 @@ class DataBase:
     self.writeQueue = []
     self.writeThread = Thread(target=self.DbWriter)
     self.writeThread.start()
+
     
   def DbWriter(self): # All writes to the database done from one thread and queued
       connection = sqlite3.connect("photon.db")
@@ -41,6 +45,7 @@ class DataBase:
           del self.writeQueue[0]
       connection.close()
 
+
   def QueryLogin(self, username, password): # Return true if username & password are valid
     self.roCursor.execute("select * from Users")
     users = self.roCursor.fetchall()
@@ -49,15 +54,17 @@ class DataBase:
         return [True, user[0]]
     return [False]
 
+
   def AddUser(self, username, password):
     self.writeQueue.append("insert into Users(name, password) values ('" + username + "', '" + password + "')")
+
 
   def AddMessage(self, userid, username, message):
     global Messages
     Messages.append([message, username])
     self.writeQueue.append("insert into Messages(senderId, message) values ('" + str(userid) + "', '" + message + "')")
 
-
+    
 class Client:
   def __init__(self, clientSocket, clientAddress):
     try:
@@ -88,6 +95,7 @@ class Client:
           self.username = loginRequestPacket.username
           ret = Database.QueryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
           valid = ret[0]
+          
           if not valid:
             print("Invalid login from: " + str(self.address) + ", id " + str(self.id))
             loginResponse = LoginResponsePacket(False) # Tell the client the login was invalid
@@ -159,10 +167,12 @@ class Client:
       ReportError()
 
 
+
 # Functions
 
 def ReportError():
   traceback.print_exc()
+
 
 def SendToClients(packet):
   try:
@@ -175,12 +185,14 @@ def SendToClients(packet):
     
   except Exception:
     ReportError()
+
     
 # Dumps and Loads are not well named
 def encode(packet):
   return pickle.dumps(packet)
 def decode(packet):
   return pickle.loads(packet)
+
 
 def __main__():
   global Database
@@ -206,6 +218,7 @@ def __main__():
     # Wait for connections
     clientSocket, clientAddress = serverSocket.accept()
     newClient = Client(clientSocket, clientAddress)
+
 
 
 if __name__ == "__main__":

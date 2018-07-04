@@ -1,11 +1,6 @@
 # Main Client File
 
 import sys
-
-from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
-from PyQt5.uic import loadUi
-
 import socket
 import pickle                                    
 from threading import Thread
@@ -16,10 +11,16 @@ import re
 import cgi
 import time
 
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
+from PyQt5.uic import loadUi
+
 # Load packet classes from shared libs
 import sys
 sys.path.insert(0, '../Libs')
 from packets import *
+
+
 
 # Global vars
 
@@ -29,6 +30,8 @@ Username = ""
 
 NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
 MAXTRANSMISSIONSIZE = 4096
+
+
 
 # Classes
 
@@ -43,8 +46,10 @@ class MainWindow(QMainWindow):
     except Exception:
       ReportError()
 
+
   def setUsername(self, username):
     self.usernameLabel.setText("Logged in as " + username)
+
 
   def closeEvent(self, event):
     # Not using onProgramExit() as it caused the program to hang when the UI is created
@@ -53,7 +58,7 @@ class MainWindow(QMainWindow):
     ServerSocket.close()
     os._exit(1)
 
-    
+ 
   def WriteLine(self, message):
     message = formatForDisplay(message)
     try:
@@ -71,6 +76,7 @@ class MainWindow(QMainWindow):
     except Exception:
       ReportError()
 
+
   def onSendClick(self):
     text = self.messageInput.text()
     if not text.isspace() and text != "":
@@ -86,9 +92,11 @@ class LoginWindow(QDialog):
     self.newAccButton.clicked.connect(self.openRegisterWindow)
     self.usernameInput.returnPressed.connect(self.onLoginClick)
 
+
   def openRegisterWindow(self):
     registerGui = RegisterWindow()
     registerGui.exec_()
+
 
   def onLoginClick(self):
     global Username
@@ -106,6 +114,7 @@ class LoginWindow(QDialog):
       
     else:
       self.errLabel.setText("Usernames must not consist of whitespace only")
+
 
   def Login(self, username, password):
     global ServerSocket
@@ -150,6 +159,9 @@ class RegisterWindow(QDialog):
     ServerSocket.send(encode(registerPacket))
     userCreatePacket = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE)) # Wait for user to be created
     self.close()
+
+
+
     
 # Functions
 
@@ -163,8 +175,10 @@ def SendMessage(message):
   except Exception:
      ReportError()
 
+
 def ReportError():
   traceback.print_exc()
+
 
 # Dumps and Loads are not well named
 def encode(packet):
@@ -172,8 +186,10 @@ def encode(packet):
 def decode(packet):
   return pickle.loads(packet)
 
+
 def formatUsername(name):
   return "[" + name + "]: "
+
 
 def onProgramExit():
   global ServerSocket
@@ -205,6 +221,7 @@ def ListenForPackets(server):
   except Exception:
      ReportError()
 
+
 def formatMessage(packet):
   global MainGui
   if packet.sender == "SILENT":  MainGui.WriteLine(packet.message) # Print the message
@@ -223,6 +240,7 @@ def formatForDisplay(message):
     return message
   except Exception:
      ReportError()
+
 
 def formatBalsmaiq(message, specialChar, tag):
   global NONPRINTINGCHAR
@@ -253,6 +271,7 @@ def formatBalsmaiq(message, specialChar, tag):
 
   message = "".join(message) # Convert back to string
   return message
+
 
 def __main__():
   global ServerSocket
