@@ -78,7 +78,7 @@ class DataBase:
   def AddMessage(self, userid, username, message):
     global Messages
     semaphore = Semaphore() # Create a semaphore to be used to tell once the database write has been completed
-    Messages.append([message, username]) 
+    Messages.append([username, message]) 
     self.writeQueue.append(["insert into Messages(senderId, message) values ('" + str(userid) + "', '" + message + "')", semaphore])
     print("1")
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
