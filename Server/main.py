@@ -69,7 +69,7 @@ class DataBase:
   def LoadMessages(self): # Load last x messages from database
     try:
         global Messages
-        lastX = 50
+        lastX = 510
         self.roCursor.execute("select * from Messages limit " + str(lastX) + " offset (select count(*) from Messages)-" + str(lastX))
         messages = self.roCursor.fetchall()
         for message in messages:
@@ -139,7 +139,17 @@ class Client:
           
       readyToListenPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait until the client is ready to receive packets
 
-      newMessageListPacket = MessageListPacket(Messages) # Send the client the previous messages
+      # Get as many previous messages as possible that will fit into the max transmision size
+      messagesToSend = []
+      newMessagesToSend = []
+      for message in reversed(Messages): # reversed as we want the latest messages
+        newMessagesToSend.append(message)
+        if len(encode(newMessagesToSend)) >= MAXTRANSMISSIONSIZE - 200: # We need a buffer of ~200 as when we construct the class the encoded size increases
+          newMessagesToSend = messagesToSend
+          break
+        else:
+          messagesToSend = newMessagesToSend
+      newMessageListPacket = MessageListPacket(reversed(messagesToSend)) # Send the client the previous messages
       self.socket.send(encode(newMessageListPacket))
       
       announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SERVER") # Client has joined message
@@ -222,6 +232,7 @@ def decode(packet):
 
 def __main__():
   try:
+    print("Loading Database...")
     global Database
     Database = DataBase()  
     Database.LoadMessages()
@@ -237,7 +248,7 @@ def __main__():
 
     # Queue up to 5 requests
     serverSocket.listen(5)                                           
-    print("\nListening for connections...")
+    print("Listening for connections...")
      
     while True:
       global Clients
