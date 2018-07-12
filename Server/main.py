@@ -40,16 +40,16 @@ class DataBase:
     
   def DbWriter(self): # All writes to the database done from one thread and queued
     try:
-      connection = sqlite3.connect("photon.db")
-      cursor = connection.cursor()
       while True:
         if len(self.writeQueue) > 0:
-          self.writeQueue[0][1].acquire() # Aquire semaphore so that the thread that created it's acquire() call will be blocking
+          connection = sqlite3.connect("photon.db")
+          cursor = connection.cursor()
           cursor.execute(self.writeQueue[0][0]) # Execute SQL command
           connection.commit() # Save changes to DB
+          print("2")
           self.writeQueue[0][1].release()  # Release semaphore flag so the client thread can continue
           del self.writeQueue[0]
-        connection.close()
+          connection.close()
     except Exception:
       ReportError()
 
@@ -81,15 +81,15 @@ class DataBase:
 
   
   def AddUser(self, username, password):
-    semaphore = Semaphore() # Create a semaphore to be used to tell once the database write has been completed
+    semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
     self.writeQueue.append(["insert into Users(name, password) values ('" + username + "', '" + password + "')", semaphore])
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
   def AddMessage(self, userid, username, message):
     global Messages
-    semaphore = Semaphore() # Create a semaphore to be used to tell once the database write has been completed
-    Messages.append([username, message]) 
+    semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
+    Messages.append([username, message])
     self.writeQueue.append(["insert into Messages(senderId, message) values ('" + str(userid) + "', '" + message + "')", semaphore])
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
