@@ -43,7 +43,6 @@ class DataBase:
           self.writeQueue[0][1].acquire() # Aquire semaphore so that the thread that created it's acquire() call will be blocking
           cursor.execute(self.writeQueue[0][0]) # Execute SQL command
           connection.commit() # Save changes to DB
-          print("2")
           self.writeQueue[0][1].release()  # Release semaphore flag so the client thread can continue
           del self.writeQueue[0]
       connection.close()
@@ -80,9 +79,8 @@ class DataBase:
     semaphore = Semaphore() # Create a semaphore to be used to tell once the database write has been completed
     Messages.append([username, message]) 
     self.writeQueue.append(["insert into Messages(senderId, message) values ('" + str(userid) + "', '" + message + "')", semaphore])
-    print("1")
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
-    print("3")
+
 
 class Client:
   def __init__(self, clientSocket, clientAddress):
@@ -129,7 +127,6 @@ class Client:
           
       readyToListenPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait until the client is ready to receive packets
 
-      Database.LoadMessages()
       newMessageListPacket = MessageListPacket(Messages) # Send the client the previous messages
       self.socket.send(encode(newMessageListPacket))
       
@@ -217,7 +214,7 @@ def decode(packet):
 def __main__():
   global Database
   Database = DataBase()  
-  
+  Database.LoadMessages()
   # Create a socket object
   serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
