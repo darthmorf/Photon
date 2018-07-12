@@ -28,14 +28,18 @@ MAXTRANSMISSIONSIZE = 4096
 
 class DataBase:
   def __init__(self):
-    self.roConnection = sqlite3.connect("file:photon.db?mode=ro", uri=True) # Load database from file in read only mode
-    self.roCursor = self.roConnection.cursor()
-    self.writeQueue = []
-    self.writeThread = Thread(target=self.DbWriter)
-    self.writeThread.start()
+    try:
+      self.roConnection = sqlite3.connect("file:photon.db?mode=ro", uri=True) # Load database from file in read only mode
+      self.roCursor = self.roConnection.cursor()
+      self.writeQueue = []
+      self.writeThread = Thread(target=self.DbWriter)
+      self.writeThread.start()
+    except Exception:
+      ReportError()
 
     
   def DbWriter(self): # All writes to the database done from one thread and queued
+    try:
       connection = sqlite3.connect("photon.db")
       cursor = connection.cursor()
       while True:
@@ -45,27 +49,35 @@ class DataBase:
           connection.commit() # Save changes to DB
           self.writeQueue[0][1].release()  # Release semaphore flag so the client thread can continue
           del self.writeQueue[0]
-      connection.close()
+        connection.close()
+    except Exception:
+      ReportError()
 
 
   def QueryLogin(self, username, password): # Return true if username & password are valid
-    self.roCursor.execute("select * from Users")
-    users = self.roCursor.fetchall()
-    for user in users: # [0]: id [1]: name [2]: password
-      if user[1] == username and user[2] == password:
-        return [True, user[0]]
-    return [False]
+    try:
+      self.roCursor.execute("select * from Users")
+      users = self.roCursor.fetchall()
+      for user in users: # [0]: id [1]: name [2]: password
+        if user[1] == username and user[2] == password:
+          return [True, user[0]]
+      return [False]
+    except Exception:
+      ReportError()
 
 
   def LoadMessages(self): # Load last x messages from database
-    global Messages
-    lastX = 50
-    self.roCursor.execute("select * from Messages limit " + str(lastX) + " offset (select count(*) from Messages)-" + str(lastX))
-    messages = self.roCursor.fetchall()
-    for message in messages:
-      self.roCursor.execute("SELECT name FROM Users WHERE id == " + str(message[1]))
-      username = self.roCursor.fetchall()[0][0]
-      Messages.append([username, message[2]])
+    try:
+        global Messages
+        lastX = 50
+        self.roCursor.execute("select * from Messages limit " + str(lastX) + " offset (select count(*) from Messages)-" + str(lastX))
+        messages = self.roCursor.fetchall()
+        for message in messages:
+          self.roCursor.execute("SELECT name FROM Users WHERE id == " + str(message[1]))
+          username = self.roCursor.fetchall()[0][0]
+          Messages.append([username, message[2]])
+    except Exception:
+        ReportError()
 
   
   def AddUser(self, username, password):
@@ -151,7 +163,6 @@ class Client:
       SendToClients(announceUserPacket)
           
       return # Return from thread
-    
     except Exception:
       ReportError()
 
@@ -165,7 +176,7 @@ class Client:
         if packet.type == "MESSAGE":
           Database.AddMessage(self.userid, packet.sender, packet.message)
           SendToClients(packet)
-      
+          
     except ConnectionResetError: # Lost connection with client
       print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
       
@@ -179,7 +190,7 @@ class Client:
       announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER")
       Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message)
       SendToClients(announceUserPacket)
-
+      
     except Exception:
       ReportError()
 
@@ -195,11 +206,9 @@ def SendToClients(packet):
   try:
     global Clients
     for client in Clients:
-      client.socket.send(encode(packet))
-      
+      client.socket.send(encode(packet))    
   except ConnectionResetError: # Client has lost connection
-    pass
-    
+    pass    
   except Exception:
     ReportError()
 
@@ -212,29 +221,32 @@ def decode(packet):
 
 
 def __main__():
-  global Database
-  Database = DataBase()  
-  Database.LoadMessages()
-  # Create a socket object
-  serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+  try:
+    global Database
+    Database = DataBase()  
+    Database.LoadMessages()
+    # Create a socket object
+    serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
-  # Get local machine name and assign a port
-  host = socket.gethostname()                           
-  port = 9998                                 
+    # Get local machine name and assign a port
+    host = socket.gethostname()                           
+    port = 9998                                 
 
-  # Bind to the port
-  serverSocket.bind((host, port))
+    # Bind to the port
+    serverSocket.bind((host, port))
 
-  # Queue up to 5 requests
-  serverSocket.listen(5)                                           
-  print("\nListening for connections...")
-   
-  while True:
-    global Clients
-    global ClientCount
-    # Wait for connections
-    clientSocket, clientAddress = serverSocket.accept()
-    newClient = Client(clientSocket, clientAddress)
+    # Queue up to 5 requests
+    serverSocket.listen(5)                                           
+    print("\nListening for connections...")
+     
+    while True:
+      global Clients
+      global ClientCount
+      # Wait for connections
+      clientSocket, clientAddress = serverSocket.accept()
+      newClient = Client(clientSocket, clientAddress)
+  except Exception:
+    ReportError()
 
 
 

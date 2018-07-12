@@ -42,21 +42,26 @@ class MainWindow(QMainWindow):
       loadUi("mainWindow.ui", self)
       self.messageInputButton.clicked.connect(self.onSendClick)
       self.messageInput.returnPressed.connect(self.onSendClick)
-      
     except Exception:
       ReportError()
 
 
   def setUsername(self, username):
-    self.usernameLabel.setText("Logged in as " + username)
+    try:
+      self.usernameLabel.setText("Logged in as " + username)
+    except Exception:
+      ReportError()
 
 
   def closeEvent(self, event):
-    # Not using onProgramExit() as it caused the program to hang when the UI is created
-    global ServerSocket
-    print("Window closed: Force closing all threads and server socket")
-    ServerSocket.close()
-    os._exit(1)
+    try:
+      # Not using onProgramExit() as it caused the program to hang when the UI is created
+      global ServerSocket
+      print("Window closed: Force closing all threads and server socket")
+      ServerSocket.close()
+      os._exit(1)
+    except Exception:
+      ReportError()
 
  
   def WriteLine(self, message):
@@ -72,93 +77,116 @@ class MainWindow(QMainWindow):
       self.chatBox.setTextCursor(cursor)
       self.chatBox.insertHtml(message)
       print(message[:-4])
-
     except Exception:
       ReportError()
 
 
   def onSendClick(self):
-    text = self.messageInput.text()
-    if not text.isspace() and text != "":
-      SendMessage(text)
-      self.messageInput.setText("")
+    try:
+      text = self.messageInput.text()
+      if not text.isspace() and text != "":
+        SendMessage(text)
+        self.messageInput.setText("")
+    except Exception:
+      ReportError()
 
 
 class LoginWindow(QDialog):
   def __init__(self, *args):
-    super(LoginWindow, self).__init__(*args)
-    loadUi("login.ui", self)
-    self.loginButton.clicked.connect(self.onLoginClick)
-    self.newAccButton.clicked.connect(self.openRegisterWindow)
-    self.usernameInput.returnPressed.connect(self.onLoginClick)
+    try:
+      super(LoginWindow, self).__init__(*args)
+      loadUi("login.ui", self)
+      self.loginButton.clicked.connect(self.onLoginClick)
+      self.newAccButton.clicked.connect(self.openRegisterWindow)
+      self.usernameInput.returnPressed.connect(self.onLoginClick)
+    except Exception:
+      ReportError()
 
 
   def openRegisterWindow(self):
-    registerGui = RegisterWindow()
-    registerGui.exec_()
+    try:
+      registerGui = RegisterWindow()
+      registerGui.exec_()
+    except Exception:
+      ReportError()
 
 
   def onLoginClick(self):
-    global Username
-    username = self.usernameInput.text()
-    password = self.passwordInput.text()
-    
-    if not username.isspace() and username != "":
+    try:
+      global Username
+      username = self.usernameInput.text()
+      password = self.passwordInput.text()
+      
+      if not username.isspace() and username != "":
 
-      if not password.isspace() and password != "":
-        Password = password
-        self.Login(username, password)
+        if not password.isspace() and password != "":
+          Password = password
+          self.Login(username, password)
+          
+        else:
+          self.errLabel.setText("Passwords must not consist of whitespace only")
         
       else:
-        self.errLabel.setText("Passwords must not consist of whitespace only")
-      
-    else:
-      self.errLabel.setText("Usernames must not consist of whitespace only")
+        self.errLabel.setText("Usernames must not consist of whitespace only")
+    except Exception:
+      ReportError()
 
 
   def Login(self, username, password):
-    global ServerSocket
-    global Username
-    loginRequest = LoginRequestPacket(username, password)
-    ServerSocket.send(encode(loginRequest))
+    try:
+      global ServerSocket
+      global Username
+      loginRequest = LoginRequestPacket(username, password)
+      ServerSocket.send(encode(loginRequest))
 
-    loginResponsePacket = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE))
-    if loginResponsePacket.valid:
-      self.close()
-      Username = username
-      
-    else:
-      self.errLabel.setText("Incorrect username or password")
+      loginResponsePacket = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE))
+      if loginResponsePacket.valid:
+        self.close()
+        Username = username
+        
+      else:
+        self.errLabel.setText("Incorrect username or password")
+    except Exception:
+      ReportError()
 
 
 class RegisterWindow(QDialog):
   def __init__(self, *args):
-    super(RegisterWindow, self).__init__(*args)
-    loadUi("register.ui", self)
-    self.registerButton.clicked.connect(self.validateInputs)
+    try:
+      super(RegisterWindow, self).__init__(*args)
+      loadUi("register.ui", self)
+      self.registerButton.clicked.connect(self.validateInputs)
+    except Exception:
+      ReportError()
 
   def validateInputs(self):
-    username = self.usernameInput.text()
-    password1 = self.passwordInput1.text()
-    password2 = self.passwordInput2.text()
+    try:
+      username = self.usernameInput.text()
+      password1 = self.passwordInput1.text()
+      password2 = self.passwordInput2.text()
 
-    if not username.isspace() and username != "":
-      if password1 == password2:
-        if not password1.isspace() and password1 != "":
-          self.register(username, password1)
+      if not username.isspace() and username != "":
+        if password1 == password2:
+          if not password1.isspace() and password1 != "":
+            self.register(username, password1)
+          else:
+            self.errLabel.setText("Passwords must not consist of whitespace only")
         else:
-          self.errLabel.setText("Passwords must not consist of whitespace only")
+          self.errLabel.setText("Passwords must match")
       else:
-        self.errLabel.setText("Passwords must match")
-    else:
-      self.errLabel.setText("Usernames must not consist of whitespace only")
+        self.errLabel.setText("Usernames must not consist of whitespace only")
+    except Exception:
+      ReportError()
 
   def register(self, username, password):
-    registerPacket = RegisterPacket(username, password)
-    global ServerSocket
-    ServerSocket.send(encode(registerPacket))
-    userCreatePacket = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE)) # Wait for user to be created
-    self.close()
+    try:
+      registerPacket = RegisterPacket(username, password)
+      global ServerSocket
+      ServerSocket.send(encode(registerPacket))
+      userCreatePacket = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE)) # Wait for user to be created
+      self.close()
+    except Exception:
+      ReportError()
 
 
 
@@ -180,7 +208,7 @@ def ReportError():
   traceback.print_exc()
 
 
-# Dumps and Loads are not well named
+# Dumps and Loads are badly named
 def encode(packet):
   return pickle.dumps(packet)
 def decode(packet):
@@ -192,10 +220,13 @@ def formatUsername(name):
 
 
 def onProgramExit():
-  global ServerSocket
-  print("Window closed: Force closing all threads and server socket")
-  ServerSocket.close()
-  os._exit(1)
+  try:
+    global ServerSocket
+    print("Window closed: Force closing all threads and server socket")
+    ServerSocket.close()
+    os._exit(1)
+  except Exception:
+      ReportError()
 
 
 def ListenForPackets(server):
@@ -223,9 +254,12 @@ def ListenForPackets(server):
 
 
 def formatMessage(packet):
-  global MainGui
-  if packet.sender == "SERVER":  MainGui.WriteLine(packet.message) # Print the message
-  else: MainGui.WriteLine(formatUsername(packet.sender) + packet.message)
+  try:
+    global MainGui
+    if packet.sender == "SERVER":  MainGui.WriteLine(packet.message) # Print the message
+    else: MainGui.WriteLine(formatUsername(packet.sender) + packet.message)
+  except Exception:
+      ReportError()
         
 
 def formatForDisplay(message):
@@ -243,76 +277,82 @@ def formatForDisplay(message):
 
 
 def formatBalsmaiq(message, specialChar, tag):
-  global NONPRINTINGCHAR
-  charInstances = []
-  i = 0
-  while True: # Locate all instances of special char within message
-    charInstance = message.find(specialChar, i)
-    if charInstance == -1:
-      break
-    else:
-      charInstances.append(charInstance)
-      i = charInstance + 1
-  message = list(message) # Convert to list so we can substitute chars by index
-  i = 0
-  for charInstance in charInstances: # Ensure character is not escaped by '\'
-    if message[charInstance - 1] == "\\":
-      message[charInstance - 1] = NONPRINTINGCHAR
-      del charInstances[i]
-    else:
-      i+= 1
+  try:
+    global NONPRINTINGCHAR
+    charInstances = []
+    i = 0
+    while True: # Locate all instances of special char within message
+      charInstance = message.find(specialChar, i)
+      if charInstance == -1:
+        break
+      else:
+        charInstances.append(charInstance)
+        i = charInstance + 1
+    message = list(message) # Convert to list so we can substitute chars by index
+    i = 0
+    for charInstance in charInstances: # Ensure character is not escaped by '\'
+      if message[charInstance - 1] == "\\":
+        message[charInstance - 1] = NONPRINTINGCHAR
+        del charInstances[i]
+      else:
+        i+= 1
 
-  if len(charInstances) % 2 != 0: # Ignore special chars without a pair
-    charInstances = charInstances[:-1]
+    if len(charInstances) % 2 != 0: # Ignore special chars without a pair
+      charInstances = charInstances[:-1]
 
-  for i in range(0, len(charInstances), 2): # Replace pairs of balsamiq with html code
-    message[charInstances[i]] = "<" + tag + ">"
-    message[charInstances[i + 1]] = "</" + tag + ">"
+    for i in range(0, len(charInstances), 2): # Replace pairs of balsamiq with html code
+      message[charInstances[i]] = "<" + tag + ">"
+      message[charInstances[i + 1]] = "</" + tag + ">"
 
-  message = "".join(message) # Convert back to string
-  return message
+    message = "".join(message) # Convert back to string
+    return message
+  except Exception:
+      ReportError()
 
 
 def __main__():
-  global ServerSocket
-  global MainGui
-  global Username
-  global Password
-  atexit.register(onProgramExit)
+  try:
+    global ServerSocket
+    global MainGui
+    global Username
+    global Password
+    atexit.register(onProgramExit)
 
-  # Print PyQt 'silent' errors 
-  sys._excepthook = sys.excepthook 
-  def exception_hook(exctype, value, traceback):
-    print(exctype, value, traceback)
-    sys._excepthook(exctype, value, traceback) 
-    sys.exit(1) 
-  sys.excepthook = exception_hook
+    # Print PyQt 'silent' errors 
+    sys._excepthook = sys.excepthook 
+    def exception_hook(exctype, value, traceback):
+      print(exctype, value, traceback)
+      sys._excepthook(exctype, value, traceback) 
+      sys.exit(1) 
+    sys.excepthook = exception_hook
 
-  # Create a socket object
-  ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    # Create a socket object
+    ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
-  # Get local machine name and assign a port
-  host = socket.gethostname()
-  port = 9998
+    # Get local machine name and assign a port
+    host = socket.gethostname()
+    port = 9998
 
-  # Connect to hostname on the port.
-  ServerSocket.connect((host, port))
+    # Connect to hostname on the port.
+    ServerSocket.connect((host, port))
 
-  # Display UI
-  app = QApplication(sys.argv)
-  MainGui = MainWindow()
-  loginGui = LoginWindow()
-  loginGui.exec_()
-  if Username == "": # Window was closed without an input
-    os._exit(1)
-  MainGui.setUsername(Username)
-  MainGui.show()
-  
-  # Start listener thread for server responses
-  listenerThread = Thread(target=ListenForPackets, args=(ServerSocket,))
-  listenerThread.start()
+    # Display UI
+    app = QApplication(sys.argv)
+    MainGui = MainWindow()
+    loginGui = LoginWindow()
+    loginGui.exec_()
+    if Username == "": # Window was closed without an input
+      os._exit(1)
+    MainGui.setUsername(Username)
+    MainGui.show()
     
-  sys.exit(app.exec_())
+    # Start listener thread for server responses
+    listenerThread = Thread(target=ListenForPackets, args=(ServerSocket,))
+    listenerThread.start()
+      
+    sys.exit(app.exec_())
+  except Exception:
+      ReportError()
 
 
 if __name__ == "__main__":
