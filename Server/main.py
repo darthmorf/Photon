@@ -46,7 +46,6 @@ class DataBase:
           cursor = connection.cursor()
           cursor.execute(self.writeQueue[0][0]) # Execute SQL command
           connection.commit() # Save changes to DB
-          print("2")
           self.writeQueue[0][1].release()  # Release semaphore flag so the client thread can continue
           del self.writeQueue[0]
           connection.close()
