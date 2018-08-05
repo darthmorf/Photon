@@ -10,6 +10,8 @@ import os
 import re
 import cgi
 import time
+import urllib.request
+import re
 
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
@@ -71,6 +73,16 @@ class MainWindow(QMainWindow):
         return
       if message[-4:] != "<br>":
          message += "<br>"
+
+      url = re.search("(?P<url>https?://[^\s]+)", message)
+      if url is not None:
+        url = url.group("url")[:-4]
+
+        if "png" in url[-3:] or "jpg" in url[-3:]:
+          print("url:   ", url)
+          file = downloadImage(url)
+
+          message += "<img src='" + file + "' height='50' width='50'/><br>"
 
       cursor = self.chatBox.textCursor()
       cursor.setPosition(len(self.chatBox.toPlainText()))
@@ -308,6 +320,11 @@ def formatBalsmaiq(message, specialChar, tag):
     return message
   except Exception:
       ReportError()
+
+def downloadImage(url):
+  filename = "cachedimgs/" + time.strftime("%Y-%m-%d %H:%M:%S").replace(":","").replace("-","").replace(" ","") + ".jpg"
+  urllib.request.urlretrieve(url, filename)
+  return filename
 
 
 def __main__():
