@@ -19,6 +19,7 @@ from PyQt5.uic import loadUi
 import sys
 sys.path.insert(0, '../Libs')
 from packets import *
+from photonUtilities import *
 
 
 
@@ -118,7 +119,6 @@ class LoginWindow(QDialog):
       password = self.passwordInput.text()
       
       if not username.isspace() and username != "":
-
         if not password.isspace() and password != "":
           Password = password
           self.Login(username, password)
@@ -136,6 +136,7 @@ class LoginWindow(QDialog):
     try:
       global ServerSocket
       global Username
+      password = HashString(password)
       loginRequest = LoginRequestPacket(username, password)
       ServerSocket.send(encode(loginRequest))
 
@@ -180,6 +181,7 @@ class RegisterWindow(QDialog):
 
   def register(self, username, password):
     try:
+      password = HashString(password)
       registerPacket = RegisterPacket(username, password)
       global ServerSocket
       ServerSocket.send(encode(registerPacket))
