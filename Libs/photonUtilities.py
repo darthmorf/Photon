@@ -13,7 +13,6 @@ def HashString(string):
   n = 9
   bitValues = [bitValueChunk[i:i+n] for i in range(0, len(bitValueChunk), n)] # Split 'binary chunk' into list of 9 bit binary numbers
 
-
   moddedBitChunk = ""
   for bitValue in bitValues:
     bitValue = int(bitValue)
@@ -21,14 +20,13 @@ def HashString(string):
     moddedBitValue = moddedBitValue * bitSum # Multiply by sum of the ascii values of the chars to ensure similar input strings look different
     moddedBitChunk += format(moddedBitValue, 'b') # Convert into binary again
 
-  n = 8
+  n = 6 # 6 bit chunks to avoid strange characters
   moddedBitValues = [moddedBitChunk[i:i+n] for i in range(0, len(moddedBitChunk), n)] # Split modded 'binary chunk' into list of 8 bit binary numbers    
   
   hashed = ""
   for moddedBitValue in moddedBitValues:
-    hashed += chr(int(moddedBitValue, 2)) # Convert binary value into decimal value then into the corresponding character
+    hashed += chr(int(moddedBitValue, 2) + 33) # Convert binary value into decimal value then into the corresponding character, skipping the first 33 as they are non-printing/whitespace
 
-  hashed = ''.join(hashed.split()) # Strip whitespace, this could cause inconsistencies depending on how the hash is stored/managed
   return hashed
 
 
