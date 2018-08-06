@@ -4,7 +4,6 @@ import sys
 import socket
 import pickle                                    
 from threading import Thread
-import traceback
 import atexit
 import os
 import re

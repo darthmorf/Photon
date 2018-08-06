@@ -1,4 +1,5 @@
 import pickle
+import traceback
 
 def HashString(string):  
   bitValueChunk = ""

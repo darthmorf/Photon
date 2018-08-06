@@ -2,7 +2,6 @@
 
 import socket                                         
 from threading import *
-import traceback
 import select
 import sqlite3
 
