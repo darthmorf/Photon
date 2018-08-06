@@ -164,7 +164,7 @@ class RegisterWindow(QDialog):
       password1 = self.passwordInput1.text()
       password2 = self.passwordInput2.text()
 
-      if not username.isspace() and username != "":
+      if not username.isspace() and username != "" and len(username) < 33:
         if password1 == password2:
           if not password1.isspace() and password1 != "":
             self.register(username, password1)
@@ -173,7 +173,7 @@ class RegisterWindow(QDialog):
         else:
           self.errLabel.setText("Passwords must match")
       else:
-        self.errLabel.setText("Usernames must not consist of whitespace only")
+        self.errLabel.setText("Usernames must not consist of whitespace only, and be\nless than 33 chars long")
     except Exception:
       ReportError()
 
