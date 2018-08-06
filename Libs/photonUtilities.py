@@ -1,3 +1,5 @@
+import pickle
+
 def HashString(string):  
   bitValueChunk = ""
   bitSum = 0
@@ -27,3 +29,14 @@ def HashString(string):
 
   hashed = ''.join(hashed.split()) # Strip whitespace, this could cause inconsistencies depending on how the hash is stored/managed
   return hashed
+
+
+def ReportError():
+  traceback.print_exc()
+
+
+# Dumps and Loads are not well named
+def encode(packet):
+  return pickle.dumps(packet)
+def decode(packet):
+  return pickle.loads(packet)

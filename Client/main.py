@@ -15,7 +15,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
 from PyQt5.uic import loadUi
 
-# Load packet classes from shared libs
+# Load classes and functions from shared libs
 import sys
 sys.path.insert(0, '../Libs')
 from packets import *
@@ -31,7 +31,6 @@ Username = ""
 
 NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
 MAXTRANSMISSIONSIZE = 4096
-
 
 
 # Classes
@@ -204,17 +203,6 @@ def SendMessage(message):
 
   except Exception:
      ReportError()
-
-
-def ReportError():
-  traceback.print_exc()
-
-
-# Dumps and Loads are badly named
-def encode(packet):
-  return pickle.dumps(packet)
-def decode(packet):
-  return pickle.loads(packet)
 
 
 def formatUsername(name):

@@ -2,15 +2,15 @@
 
 import socket                                         
 from threading import *
-import pickle
 import traceback
 import select
 import sqlite3
 
-# Load packet classes from shared libs
+# Load classes and functions from shared libs
 import sys
 sys.path.insert(0, '../Libs')
 from packets import *
+from photonUtilities import *
 
 
 
@@ -207,10 +207,6 @@ class Client:
 
 # Functions
 
-def ReportError():
-  traceback.print_exc()
-
-
 def SendToClients(packet):
   try:
     global Clients
@@ -222,11 +218,6 @@ def SendToClients(packet):
     ReportError()
 
     
-# Dumps and Loads are not well named
-def encode(packet):
-  return pickle.dumps(packet)
-def decode(packet):
-  return pickle.loads(packet)
 
 
 def __main__():
