@@ -4,6 +4,7 @@ import socket
 from threading import *
 import select
 import sqlite3
+import re
 
 # Load classes and functions from shared libs
 import sys
@@ -166,9 +167,10 @@ class Client:
           del Clients[i] # Delete class instance
           break
 
-      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER", GetDateTime())
-      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message, announceUserPacket.timeSent)
-      SendToClients(announceUserPacket)
+      if self.username != "UNKNOWN":
+        announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER", GetDateTime())
+        Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message, announceUserPacket.timeSent)
+        SendToClients(announceUserPacket)
           
       return # Return from thread
     except Exception:
