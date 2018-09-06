@@ -6,7 +6,6 @@ import pickle
 from threading import Thread
 import atexit
 import os
-import re
 import cgi
 import time
 import datetime

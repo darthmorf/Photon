@@ -43,9 +43,9 @@ class DataBase:
         if len(self.writeQueue) > 0:
           connection = sqlite3.connect("photon.db")
           cursor = connection.cursor()
-          cursor.execute(self.writeQueue[0][0]) # Execute SQL command
+          cursor.execute(self.writeQueue[0][0], self.writeQueue[0][1]) # Execute SQL command
           connection.commit() # Save changes to DB
-          self.writeQueue[0][1].release()  # Release semaphore flag so the client thread can continue
+          self.writeQueue[0][2].release()  # Release semaphore flag so the client thread can continue
           del self.writeQueue[0]
           connection.close()
     except Exception:
@@ -68,10 +68,10 @@ class DataBase:
     try:
         global Messages
         lastX = 510
-        self.roCursor.execute("select * from Messages limit " + str(lastX) + " offset (select count(*) from Messages)-" + str(lastX))
+        self.roCursor.execute("select * from Messages limit ? offset (select count(*) from Messages)-?", (str(lastX), str(lastX)))
         messages = self.roCursor.fetchall()
         for message in messages:
-          self.roCursor.execute("SELECT name FROM Users WHERE id == " + str(message[1]))
+          self.roCursor.execute("SELECT name FROM Users WHERE id == ?", (str(message[1])))
           username = self.roCursor.fetchall()[0][0]
           Messages.append([username, message[2], message[3]])
     except Exception:
@@ -80,7 +80,7 @@ class DataBase:
   
   def AddUser(self, username, password):
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
-    self.writeQueue.append(["insert into Users(name, password) values ('" + username + "', '" + password + "')", semaphore])
+    self.writeQueue.append(["insert into Users(name, password) values (?, ?)", (username, password), semaphore])
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
@@ -88,7 +88,7 @@ class DataBase:
     global Messages
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
     Messages.append([username, message, timeSent])
-    self.writeQueue.append(["insert into Messages(senderId, message, timeSent) values ('" + str(userid) + "', '" + message + "', '" + timeSent + "')", semaphore])
+    self.writeQueue.append(["insert into Messages(senderId, message, timeSent) values (?, ?, ?)", (str(userid), message, timeSent), semaphore])
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
