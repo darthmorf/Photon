@@ -21,10 +21,11 @@ class RegisterPacket(Packet):
     self.password = password
 
 class MessagePacket(Packet):
-  def __init__(self, message, sender):
+  def __init__(self, message, sender, timeSent):
     Packet.__init__(self, "MESSAGE")
     self.message = message
     self.sender = sender
+    self.timeSent = timeSent
 
 class MessageListPacket(Packet):
   def __init__(self, messageList):

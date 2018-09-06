@@ -1,5 +1,6 @@
 import pickle
 import traceback
+import datetime
 
 def HashString(string):  
   bitValueChunk = ""
@@ -32,6 +33,10 @@ def HashString(string):
 
 def ReportError():
   traceback.print_exc()
+
+
+def GetDateTime():
+  return datetime.datetime.now().strftime("%y-%m-%d %H:%M") 
 
 
 # Dumps and Loads are not well named

@@ -9,6 +9,7 @@ import os
 import re
 import cgi
 import time
+import datetime
 
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
@@ -197,7 +198,8 @@ def SendMessage(message):
   try:
       global ServerSocket
       global Username
-      newMessagePacket = MessagePacket(message, Username) # Create a new message packet
+      timeSent = GetDateTime()
+      newMessagePacket = MessagePacket(message, Username, timeSent) # Create a new message packet
       ServerSocket.send(encode(newMessagePacket))
 
   except Exception:
@@ -206,6 +208,10 @@ def SendMessage(message):
 
 def formatUsername(name):
   return "[" + name + "]: "
+
+
+def formatDateTime(time):
+  return "" + time + " | "
 
 
 def onProgramExit():
@@ -232,8 +238,9 @@ def ListenForPackets(server):
       if packet.type == "MESSAGELIST":
         for element in packet.messageList:
           if element[0] == "SERVER":
-            MainGui.WriteLine(element[1])
-          else: MainGui.WriteLine(formatUsername(element[0]) + element[1])
+            MainGui.WriteLine(formatDateTime(element[2]) + element[1])
+          else:
+            MainGui.WriteLine(formatDateTime(element[2]) + formatUsername(element[0]) + element[1])
              
       elif packet.type == "MESSAGE":
         formatMessage(packet)
@@ -245,8 +252,10 @@ def ListenForPackets(server):
 def formatMessage(packet):
   try:
     global MainGui
-    if packet.sender == "SERVER":  MainGui.WriteLine(packet.message) # Print the message
-    else: MainGui.WriteLine(formatUsername(packet.sender) + packet.message)
+    if packet.sender == "SERVER":
+      MainGui.WriteLine(formatDateTime(packet.timeSent) + packet.message) # Print the message
+    else:
+      MainGui.WriteLine(formatDateTime(packet.timeSent) + formatUsername(packet.sender) + packet.message)
   except Exception:
       ReportError()
         

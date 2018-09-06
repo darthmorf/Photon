@@ -73,7 +73,7 @@ class DataBase:
         for message in messages:
           self.roCursor.execute("SELECT name FROM Users WHERE id == " + str(message[1]))
           username = self.roCursor.fetchall()[0][0]
-          Messages.append([username, message[2]])
+          Messages.append([username, message[2], message[3]])
     except Exception:
         ReportError()
 
@@ -84,11 +84,11 @@ class DataBase:
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
-  def AddMessage(self, userid, username, message):
+  def AddMessage(self, userid, username, message, timeSent):
     global Messages
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
-    Messages.append([username, message])
-    self.writeQueue.append(["insert into Messages(senderId, message) values ('" + str(userid) + "', '" + message + "')", semaphore])
+    Messages.append([username, message, timeSent])
+    self.writeQueue.append(["insert into Messages(senderId, message, timeSent) values ('" + str(userid) + "', '" + message + "', '" + timeSent + "')", semaphore])
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
@@ -150,8 +150,8 @@ class Client:
       newMessageListPacket = MessageListPacket(reversed(messagesToSend)) # Send the client the previous messages
       self.socket.send(encode(newMessageListPacket))
       
-      announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SERVER") # Client has joined message
-      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message)
+      announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SERVER", GetDateTime()) # Client has joined message
+      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message, announceUserPacket.timeSent)
       SendToClients(announceUserPacket)
 
       self.listenerThread = Thread(target=self.ListenForPackets) # Start thread to listen for packets from client
@@ -166,8 +166,8 @@ class Client:
           del Clients[i] # Delete class instance
           break
 
-      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER")
-      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message)
+      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER", GetDateTime())
+      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message, announceUserPacket.timeSent)
       SendToClients(announceUserPacket)
           
       return # Return from thread
@@ -182,7 +182,7 @@ class Client:
         
         packet = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for message from client
         if packet.type == "MESSAGE":
-          Database.AddMessage(self.userid, packet.sender, packet.message)
+          Database.AddMessage(self.userid, packet.sender, packet.message, packet.timeSent)
           SendToClients(packet)
           
     except ConnectionResetError: # Lost connection with client
@@ -195,8 +195,8 @@ class Client:
           del Clients[i] # Delete class instance
           break
 
-      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER")
-      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message)
+      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER", GetDateTime())
+      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message, announceUserPacket.timeSent)
       SendToClients(announceUserPacket)
       
     except Exception:
