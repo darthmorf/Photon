@@ -10,7 +10,7 @@ import cgi
 import time
 import datetime
 
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
 from PyQt5.uic import loadUi
 
@@ -35,12 +35,17 @@ MAXTRANSMISSIONSIZE = 4096
 # Classes
 
 class MainWindow(QMainWindow):
+
+  # Signals for updating the GUI
+  writeSignal = pyqtSignal(str)
+
   def __init__(self, *args):
     try:
       super(MainWindow, self).__init__(*args)
       loadUi("mainWindow.ui", self)
       self.messageInputButton.clicked.connect(self.onSendClick)
       self.messageInput.returnPressed.connect(self.onSendClick)
+      self.writeSignal.connect(self.WriteLine) # Point the writeSignal to the corresponding function
     except Exception:
       ReportError()
 
@@ -62,7 +67,7 @@ class MainWindow(QMainWindow):
     except Exception:
       ReportError()
 
- 
+
   def WriteLine(self, message):
     message = formatForDisplay(message)
     try:
@@ -225,8 +230,7 @@ def onProgramExit():
 
 def ListenForPackets(server):
   try:
-    global ServerSocket
-    global MainGui
+    global ServerSocket, MainGui
   
     readyToListen = Packet("READYTOLISTEN") # Tell the server we are ready to listen using generic packet
     ServerSocket.send(encode(readyToListen))
@@ -237,24 +241,27 @@ def ListenForPackets(server):
       if packet.type == "MESSAGELIST":
         for element in packet.messageList:
           if element[0] == "SERVER":
-            MainGui.WriteLine(formatDateTime(element[2]) + element[1])
+            MainGui.writeSignal.emit(formatDateTime(element[2]) + element[1])
           else:
-            MainGui.WriteLine(formatDateTime(element[2]) + formatUsername(element[0]) + element[1])
+            MainGui.writeSignal.emit(formatDateTime(element[2]) + formatUsername(element[0]) + element[1])
              
       elif packet.type == "MESSAGE":
         formatMessage(packet)
-        
+
+      else:
+        1 == 1
+
   except Exception:
-     ReportError()
+    ReportError() 
 
 
 def formatMessage(packet):
   try:
-    global MainGui
+    global WriteQueue
     if packet.sender == "SERVER":
-      MainGui.WriteLine(formatDateTime(packet.timeSent) + packet.message) # Print the message
+      MainGui.writeSignal.emit(formatDateTime(packet.timeSent) + packet.message)
     else:
-      MainGui.WriteLine(formatDateTime(packet.timeSent) + formatUsername(packet.sender) + packet.message)
+      MainGui.writeSignal.emit(formatDateTime(packet.timeSent) + formatUsername(packet.sender) + packet.message)
   except Exception:
       ReportError()
         
@@ -309,10 +316,7 @@ def formatBalsmaiq(message, specialChar, tag):
 
 def __main__():
   try:
-    global ServerSocket
-    global MainGui
-    global Username
-    global Password
+    global ServerSocket, Username, Password
     atexit.register(onProgramExit)
 
     # Print PyQt 'silent' errors 
@@ -334,6 +338,7 @@ def __main__():
     ServerSocket.connect((host, port))
 
     # Display UI
+    global GuiDone, MainGui
     app = QApplication(sys.argv)
     MainGui = MainWindow()
     loginGui = LoginWindow()
@@ -346,8 +351,9 @@ def __main__():
     # Start listener thread for server responses
     listenerThread = Thread(target=ListenForPackets, args=(ServerSocket,))
     listenerThread.start()
-      
+
     sys.exit(app.exec_())
+      
   except Exception:
       ReportError()
 
