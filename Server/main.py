@@ -158,6 +158,8 @@ class Client:
       self.listenerThread = Thread(target=self.ListenForPackets) # Start thread to listen for packets from client
       self.listenerThread.start()
 
+      SendUserListPacket() # Tell clients a new user has joined
+
     except ConnectionResetError: # Lost connection with client
       print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
       
@@ -171,6 +173,7 @@ class Client:
         announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER", GetDateTime())
         Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message, announceUserPacket.timeSent)
         SendToClients(announceUserPacket)
+        SendUserListPacket() # Tell clients a user has left
           
       return # Return from thread
     except Exception:
@@ -200,6 +203,7 @@ class Client:
       announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER", GetDateTime())
       Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message, announceUserPacket.timeSent)
       SendToClients(announceUserPacket)
+      SendUserListPacket() # Tell clients a user has left
       
     except Exception:
       ReportError()
@@ -218,7 +222,18 @@ def SendToClients(packet):
   except Exception:
     ReportError()
 
-    
+
+def SendUserListPacket():
+  try:
+    global Clients
+    users = []
+    for client in Clients:
+      users.append(client.username)
+    users.sort()
+    userListPacket = UserListPacket(users)
+    SendToClients(userListPacket)
+  except Exception:
+    ReportError()
 
 
 def __main__():

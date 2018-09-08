@@ -38,6 +38,7 @@ class MainWindow(QMainWindow):
 
   # Signals for updating the GUI
   writeSignal = pyqtSignal(str)
+  usersChangedSignal = pyqtSignal(list)
 
   def __init__(self, *args):
     try:
@@ -45,7 +46,9 @@ class MainWindow(QMainWindow):
       loadUi("mainWindow.ui", self)
       self.messageInputButton.clicked.connect(self.onSendClick)
       self.messageInput.returnPressed.connect(self.onSendClick)
-      self.writeSignal.connect(self.WriteLine) # Point the writeSignal to the corresponding function
+      # Point the signals to the corresponding functions
+      self.writeSignal.connect(self.WriteLine) 
+      self.usersChangedSignal.connect(self.UpdateConnectedUsers)
     except Exception:
       ReportError()
 
@@ -83,6 +86,15 @@ class MainWindow(QMainWindow):
       print(message[:-4])
     except Exception:
       ReportError()
+
+    
+  def UpdateConnectedUsers(self, userList):
+    userCount = len(userList)
+    self.userCountLabel.setText("Users Online: " + str(userCount))
+    
+    self.userListBox.clear()
+    for user in userList:
+      self.userListBox.insertHtml(user + "<br>")
 
 
   def onSendClick(self):
@@ -248,8 +260,8 @@ def ListenForPackets(server):
       elif packet.type == "MESSAGE":
         formatMessage(packet)
 
-      else:
-        1 == 1
+      elif packet.type == "USERLIST":
+        MainGui.usersChangedSignal.emit(packet.userList)
 
   except Exception:
     ReportError() 
@@ -257,7 +269,6 @@ def ListenForPackets(server):
 
 def formatMessage(packet):
   try:
-    global WriteQueue
     if packet.sender == "SERVER":
       MainGui.writeSignal.emit(formatDateTime(packet.timeSent) + packet.message)
     else:

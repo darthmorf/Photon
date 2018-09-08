@@ -31,3 +31,8 @@ class MessageListPacket(Packet):
   def __init__(self, messageList):
     Packet.__init__(self, "MESSAGELIST")
     self.messageList = messageList
+
+class UserListPacket(Packet):
+  def __init__(self, userList):
+    Packet.__init__(self, "USERLIST")
+    self.userList = userList
