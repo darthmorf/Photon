@@ -9,10 +9,10 @@ class LoginRequestPacket(Packet):
     self.password = password
 
 class LoginResponsePacket(Packet):
-  def __init__(self, valid, errCode=0):
+  def __init__(self, valid, err=""):
     Packet.__init__(self, "LOGINRESPONSE")
     self.valid = valid
-    self.errCode = errCode
+    self.err = err
 
 class RegisterPacket(Packet):
   def __init__(self, username, password):

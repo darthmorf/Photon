@@ -134,14 +134,21 @@ class Client:
 
           self.socket.send(encode(userRegistered))
         
-        else:
-          self.username = loginRequestPacket.username
-          ret = Database.QueryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
-          valid = ret[0]
-          
+        elif loginRequestPacket.type == "LOGINREQUEST":
+          err = "Incorrect username or password"
+          for client in Clients:
+            if client.username == loginRequestPacket.username:
+              valid = False
+              err = "That user is already logged in"
+              break
+            
+          else:              
+            ret = Database.QueryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
+            valid = ret[0]
+            
           if not valid:
-            print("Invalid login from: " + str(self.address) + ", id " + str(self.id))
-            loginResponse = LoginResponsePacket(False) # Tell the client the login was invalid
+            print("Invalid login from: " + str(self.address) + ", id " + str(self.id) + " - " + err)
+            loginResponse = LoginResponsePacket(False, err) # Tell the client the login was invalid
             self.socket.send(encode(loginResponse))
 
           else:
@@ -149,6 +156,7 @@ class Client:
             loginResponse = LoginResponsePacket(True) # Tell the client the login was valid
             self.socket.send(encode(loginResponse))
             self.userid = ret[1]
+            self.username = loginRequestPacket.username
             loginInvalid = False
           
       readyToListenPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait until the client is ready to receive packets

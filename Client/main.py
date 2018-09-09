@@ -156,12 +156,17 @@ class LoginWindow(QDialog):
       ServerSocket.send(encode(loginRequest))
 
       loginResponsePacket = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE))
+
+      if loginResponsePacket.type != "LOGINRESPONSE":
+        self.Login(username, password) # Occasionally a left-over packet can make it's way here - if so we'll just try again
+        return
+
       if loginResponsePacket.valid:
         self.close()
         Username = username
         
       else:
-        self.errLabel.setText("Incorrect username or password")
+        self.errLabel.setText(loginResponsePacket.err)
     except Exception:
       ReportError()
 
