@@ -78,6 +78,13 @@ class DataBase:
     except Exception:
         ReportError()
 
+
+  def UserExists(self, username):
+    self.roCursor.execute("SELECT name FROM Users WHERE name == ?", (username,))
+    if len(self.roCursor.fetchall()) > 0:
+      return True
+    else:
+      return False
   
   def AddUser(self, username, password):
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
@@ -115,9 +122,17 @@ class Client:
         loginRequestPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for client login packet TODO: time this out
 
         if loginRequestPacket.type == "CREATEUSER":
-          Database.AddUser(loginRequestPacket.username, loginRequestPacket.password)
-          userRegistered = Packet("REGISTERDONE")
-          self.socket.send(encode(Packet))
+
+          usernameExists = Database.UserExists(loginRequestPacket.username)
+
+          if usernameExists:
+            userRegistered = RegisterResponsePacket(False, "A user with that name already exists")
+
+          else:
+            Database.AddUser(loginRequestPacket.username, loginRequestPacket.password)
+            userRegistered = RegisterResponsePacket(True)
+
+          self.socket.send(encode(userRegistered))
         
         else:
           self.username = loginRequestPacket.username

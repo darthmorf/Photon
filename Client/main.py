@@ -11,7 +11,7 @@ import time
 import datetime
 
 from PyQt5.QtCore import pyqtSlot, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QMessageBox
 from PyQt5.uic import loadUi
 
 # Load classes and functions from shared libs
@@ -200,8 +200,16 @@ class RegisterWindow(QDialog):
       registerPacket = RegisterPacket(username, password)
       global ServerSocket
       ServerSocket.send(encode(registerPacket))
-      userCreatePacket = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE)) # Wait for user to be created
-      self.close()
+      registerResponse = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE)) # Wait for user creation packet response
+      if registerResponse.valid:
+        successNotifier = QMessageBox()
+        successNotifier.setIcon(QMessageBox.Information)
+        successNotifier.setText("Successfully registered user '" + username + "'")
+        successNotifier.setWindowTitle("Account creation successful")
+        successNotifier.exec_()
+        self.close()
+      else:
+        self.errLabel.setText(registerResponse.err)
     except Exception:
       ReportError()
 

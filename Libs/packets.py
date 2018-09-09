@@ -20,6 +20,12 @@ class RegisterPacket(Packet):
     self.username = username
     self.password = password
 
+class RegisterResponsePacket(Packet):
+  def __init__(self, valid, err=""):
+    Packet.__init__(self, "REGISTERRESPONSE")
+    self.valid = valid
+    self.err = err
+    
 class MessagePacket(Packet):
   def __init__(self, message, sender, timeSent):
     Packet.__init__(self, "MESSAGE")
