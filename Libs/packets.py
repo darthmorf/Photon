@@ -9,10 +9,11 @@ class LoginRequestPacket(Packet):
     self.password = password
 
 class LoginResponsePacket(Packet):
-  def __init__(self, valid, err=""):
+  def __init__(self, valid, userId="", err=""):
     Packet.__init__(self, "LOGINRESPONSE")
     self.valid = valid
     self.err = err
+    self.id = userId
 
 class RegisterPacket(Packet):
   def __init__(self, username, password):
@@ -27,11 +28,9 @@ class RegisterResponsePacket(Packet):
     self.err = err
     
 class MessagePacket(Packet):
-  def __init__(self, message, sender, timeSent):
+  def __init__(self, message):
     Packet.__init__(self, "MESSAGE")
-    self.message = message
-    self.sender = sender
-    self.timeSent = timeSent
+    self.message = message # Utilises Message class TODO just use message class
 
 class MessageListPacket(Packet):
   def __init__(self, messageList):
@@ -42,3 +41,18 @@ class UserListPacket(Packet):
   def __init__(self, userList):
     Packet.__init__(self, "USERLIST")
     self.userList = userList
+
+class CommandPacket(Packet):
+  def __init__(self, command, args=[]):
+    Packet.__init__(self, "COMMAND")
+    self.command = command
+    self.args = args
+
+class CommandResponsePacket(Packet):
+  def __init__(self, command, success, err="", response="", timeSent=""):
+    Packet.__init__(self, "COMMANDRESPONSE")
+    self.command = command
+    self.success = success
+    self.err = err
+    self.response = response
+    self.timeSent = timeSent

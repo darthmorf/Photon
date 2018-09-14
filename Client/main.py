@@ -27,9 +27,16 @@ from photonUtilities import *
 MainGui = None
 ServerSocket = None
 Username = ""
+UserId = None
 
 NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
 MAXTRANSMISSIONSIZE = 4096
+COMMANDCHAR = "/"
+
+BLACK = "#000000"
+COMMANDERROR = "#ff3030"
+WHISPER = "#636363"
+
 
 
 # Classes
@@ -37,7 +44,7 @@ MAXTRANSMISSIONSIZE = 4096
 class MainWindow(QMainWindow):
 
   # Signals for updating the GUI
-  writeSignal = pyqtSignal(str)
+  writeSignal = pyqtSignal(str, str)
   usersChangedSignal = pyqtSignal(list)
 
   def __init__(self, *args):
@@ -71,8 +78,10 @@ class MainWindow(QMainWindow):
       ReportError()
 
 
-  def WriteLine(self, message):
+  def WriteLine(self, message, colour):
     message = formatForDisplay(message)
+    rawMessage = message
+    message = "<font color='" + message + "'>" + message + "</font>"
     try:
       if message == "":
         return
@@ -83,7 +92,7 @@ class MainWindow(QMainWindow):
       cursor.setPosition(len(self.chatBox.toPlainText()))
       self.chatBox.setTextCursor(cursor)
       self.chatBox.insertHtml(message)
-      print(message[:-4])
+      print(rawMessage)
     except Exception:
       ReportError()
 
@@ -101,7 +110,10 @@ class MainWindow(QMainWindow):
     try:
       text = self.messageInput.text()
       if not text.isspace() and text != "":
-        SendMessage(text)
+        if text[0] == COMMANDCHAR:
+          ParseCommand(text)
+        else:
+          SendMessage(text)
         self.messageInput.setText("")
     except Exception:
       ReportError()
@@ -149,8 +161,7 @@ class LoginWindow(QDialog):
 
   def Login(self, username, password):
     try:
-      global ServerSocket
-      global Username
+      global ServerSocket, Username, UserID
       password = HashString(password)
       loginRequest = LoginRequestPacket(username, password)
       ServerSocket.send(encode(loginRequest))
@@ -164,6 +175,7 @@ class LoginWindow(QDialog):
       if loginResponsePacket.valid:
         self.close()
         Username = username
+        UserId = loginResponsePacket.id
         
       else:
         self.errLabel.setText(loginResponsePacket.err)
@@ -225,22 +237,31 @@ class RegisterWindow(QDialog):
 
 def SendMessage(message):
   try:
-      global ServerSocket
-      global Username
-      timeSent = GetDateTime()
-      newMessagePacket = MessagePacket(message, Username, timeSent) # Create a new message packet
+      global ServerSocket, Username
+      newMessage = Message(UserId, Username, message)
+      newMessagePacket = MessagePacket(newMessage)
       ServerSocket.send(encode(newMessagePacket))
 
   except Exception:
      ReportError()
 
 
-def formatUsername(name):
-  return "[" + name + "]: "
+def ParseCommand(command):
+  try:
+    global ServerSocket
+    command = command[1:] # Strip command char
+    args = command.split(" ") 
+    command = args[0]
+    del args[0]
+    commandPacket = CommandPacket(command, args)
+    ServerSocket.send(encode(commandPacket))
+    
+  except Exception:
+    ReportError()
+    
 
-
-def formatDateTime(time):
-  return "" + time + " | "
+def printLine(message, colour="#000000"):
+  MainGui.writeSignal.emit(message, colour)
 
 
 def onProgramExit():
@@ -264,11 +285,11 @@ def ListenForPackets(server):
       packet = decode(server.recv(MAXTRANSMISSIONSIZE))
 
       if packet.type == "MESSAGELIST":
-        for element in packet.messageList:
-          if element[0] == "SERVER":
-            MainGui.writeSignal.emit(formatDateTime(element[2]) + element[1])
+        for message in packet.messageList:
+          if message.senderName == "SERVER":
+            printLine(formatDateTime(message.timeSent) + message.contents, message.colour)
           else:
-            MainGui.writeSignal.emit(formatDateTime(element[2]) + formatUsername(element[0]) + element[1])
+            printLine(formatDateTime(message.timeSent) + formatUsername(message.senderName) + message.contents, message.colour)
              
       elif packet.type == "MESSAGE":
         formatMessage(packet)
@@ -276,16 +297,29 @@ def ListenForPackets(server):
       elif packet.type == "USERLIST":
         MainGui.usersChangedSignal.emit(packet.userList)
 
+      elif packet.type == "COMMANDRESPONSE":
+        if packet.success:
+          if packet.command == "ping":
+            printLine(packet.response, WHISPER)
+
+          elif packet.command == "whisper":
+            printLine(formatDateTime(packet.timeSent) + packet.response, WHISPER)            
+
+        else:
+          printLine("Error executing command '" + packet.command + "' - " + packet.err, COMMANDERROR)
+          
+          
+
   except Exception:
     ReportError() 
 
 
 def formatMessage(packet):
   try:
-    if packet.sender == "SERVER":
-      MainGui.writeSignal.emit(formatDateTime(packet.timeSent) + packet.message)
+    if packet.message.senderName == "SERVER":
+      printLine(formatDateTime(packet.message.timeSent) + packet.message.contents, packet.message.colour)
     else:
-      MainGui.writeSignal.emit(formatDateTime(packet.timeSent) + formatUsername(packet.sender) + packet.message)
+      printLine(formatDateTime(packet.message.timeSent) + formatUsername(packet.message.senderName) + packet.message.contents, packet.message.colour)
   except Exception:
       ReportError()
         

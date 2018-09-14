@@ -2,6 +2,17 @@ import pickle
 import traceback
 import datetime
 
+
+class Message():
+  def __init__(self, senderId, senderName, contents, timeSent="", recipientId=1, colour="#000000"):
+    self.senderId = senderId
+    self.senderName = senderName
+    self.contents = contents
+    self.timeSent = timeSent
+    self.recipientId = recipientId
+    self.colour = colour
+
+
 def HashString(string):  
   bitValueChunk = ""
   bitSum = 0
@@ -37,6 +48,14 @@ def ReportError():
 
 def GetDateTime():
   return datetime.datetime.now().strftime("%y-%m-%d %H:%M") 
+
+
+def formatUsername(name):
+  return "[" + name + "]: "
+
+
+def formatDateTime(time):
+  return "" + time + " | "
 
 
 # Dumps and Loads are not well named

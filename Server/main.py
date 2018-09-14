@@ -18,7 +18,7 @@ from photonUtilities import *
 
 Messages = []
 Clients  = []
-Database = ""
+Database = None
 
 MAXTRANSMISSIONSIZE = 4096
 
@@ -74,7 +74,8 @@ class DataBase:
         for message in messages:
           self.roCursor.execute("SELECT name FROM Users WHERE id == ?", (str(message[1])))
           username = self.roCursor.fetchall()[0][0]
-          Messages.append([username, message[2], message[3]])
+          constructedMessage = Message(message[1], username, message[2], message[3], message[4])
+          Messages.append(constructedMessage)
     except Exception:
         ReportError()
 
@@ -88,15 +89,15 @@ class DataBase:
   
   def AddUser(self, username, password):
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
-    self.writeQueue.append(["insert into Users(name, password) values (?, ?)", (username, password), semaphore])
+    self.writeQueue.append(("insert into Users(name, password) values (?, ?)", (username, password), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
-  def AddMessage(self, userid, username, message, timeSent):
+  def AddMessage(self, message):
     global Messages
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
-    Messages.append([username, message, timeSent])
-    self.writeQueue.append(["insert into Messages(senderId, message, timeSent) values (?, ?, ?)", (str(userid), message, timeSent), semaphore])
+    Messages.append(message)
+    self.writeQueue.append(("insert into Messages(senderId, message, timeSent, recipientId, colour) values (?,?,?,?,?)", (str(message.senderId), message.contents, message.timeSent, message.recipientId, message.colour), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
@@ -153,7 +154,7 @@ class Client:
 
           else:
             print("Valid login from: " + str(self.address) + ", id " + str(self.id))
-            loginResponse = LoginResponsePacket(True) # Tell the client the login was valid
+            loginResponse = LoginResponsePacket(True, userId=ret[1]) # Tell the client the login was valid
             self.socket.send(encode(loginResponse))
             self.userid = ret[1]
             self.username = loginRequestPacket.username
@@ -165,6 +166,7 @@ class Client:
       messagesToSend = []
       newMessagesToSend = []
       for message in reversed(Messages): # reversed as we want the latest messages
+        # CHECK FOR RECIPIENT IDS HERE
         newMessagesToSend.append(message)
         if len(encode(newMessagesToSend)) >= MAXTRANSMISSIONSIZE - 200: # We need a buffer of ~200 as when we construct the class the encoded size increases
           newMessagesToSend = messagesToSend
@@ -173,9 +175,11 @@ class Client:
           messagesToSend = newMessagesToSend
       newMessageListPacket = MessageListPacket(reversed(messagesToSend)) # Send the client the previous messages
       self.socket.send(encode(newMessageListPacket))
+
       
-      announceUserPacket = MessagePacket(" --- " + self.username + " has joined the server ---", "SERVER", GetDateTime()) # Client has joined message
-      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message, announceUserPacket.timeSent)
+      newMessage = Message(1, "SERVER", " --- " + self.username + " has joined the server ---", GetDateTime())
+      announceUserPacket = MessagePacket(newMessage) # Client has joined message
+      Database.AddMessage(newMessage)
       SendToClients(announceUserPacket)
 
       self.listenerThread = Thread(target=self.ListenForPackets) # Start thread to listen for packets from client
@@ -193,8 +197,9 @@ class Client:
           break
 
       if self.username != "UNKNOWN":
-        announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER", GetDateTime())
-        Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message, announceUserPacket.timeSent)
+        newMessage = Message(1, "SERVER", " --- " + self.username + " has left the server ---", GetDateTime())
+        announceUserPacket = MessagePacket(newMessage)
+        Database.AddMessage(newMessage)
         SendToClients(announceUserPacket)
         SendUserListPacket() # Tell clients a user has left
           
@@ -205,26 +210,61 @@ class Client:
 
   def ListenForPackets(self):
     try:
-      global Messages
+      global Messages, Clients, Database
       while True:
         
         packet = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for message from client
         if packet.type == "MESSAGE":
-          Database.AddMessage(self.userid, packet.sender, packet.message, packet.timeSent)
+          packet.message.timeSent = GetDateTime() # Update the message with the time it was received
+          Database.AddMessage(packet.message)
           SendToClients(packet)
+
+        elif packet.type == "COMMAND":
+          command = packet.command
+          args = packet.args
+          success = False
+          err = ""
+          response = ""
+          targetClient = self
+          print("User " + self.username + ", " + str(self.id) + " executed command " + command + " with args " + str(args))
+          
+          if command == "ping":
+            success = True
+            response = "Pong!"
+
+          if command == "whisper":
+            targetName = args[0]
+            del args[0]
+            for client in Clients:
+              if client.username == targetName:
+                targetClient = client
+                success = True
+                message = "(Whisper) " + " ".join(args)
+                response = "_" + formatUsername(self.username) + message + "_"
+                #newMessage = Message(self.userid, message, GetDateTime(), targetClient.userid)
+                #Database.AddMessage(newMessage)
+                break
+            else:
+              err = "Could not find user with name " + targetName
+
+          else:
+            err = "Unrecognised command"
+
+          response = CommandResponsePacket(command, success, err, response, GetDateTime())
+          targetClient.socket.send(encode(response)) # TODO send to sender too
           
     except ConnectionResetError: # Lost connection with client
       print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
       
       self.socket.close() # Close socket
-      global Clients
       for i in range(0, len(Clients)):
         if Clients[i].id == self.id:
           del Clients[i] # Delete class instance
           break
 
-      announceUserPacket = MessagePacket(" --- " + self.username + " has left the server ---", "SERVER", GetDateTime())
-      Database.AddMessage(1, announceUserPacket.sender, announceUserPacket.message, announceUserPacket.timeSent)
+      newMessage = Message(1, "SERVER", " --- " + self.username + " has left the server ---", GetDateTime())
+      announceUserPacket = MessagePacket(newMessage)
+      Database.AddMessage(newMessage)
       SendToClients(announceUserPacket)
       SendUserListPacket() # Tell clients a user has left
       

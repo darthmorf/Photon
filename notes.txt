@@ -14,3 +14,6 @@ statisitics
 images?
 timestamp - order messages from it?
 server name
+DB writer class
+message packet and class should be merged
+use more variables eg server username
