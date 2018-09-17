@@ -72,7 +72,7 @@ class DataBase:
         self.roCursor.execute("select * from Messages limit ? offset (select count(*) from Messages)-?", (str(lastX), str(lastX)))
         messages = self.roCursor.fetchall()
         for message in messages:
-          self.roCursor.execute("SELECT name FROM Users WHERE id == ?", (str(message[1])))
+          self.roCursor.execute("SELECT name FROM Users WHERE id == ?", (str(message[1]),))
           username = self.roCursor.fetchall()[0][0]
           constructedMessage = Message(message[1], username, message[2], message[3], message[4])
           Messages.append(constructedMessage)

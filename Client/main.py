@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
   def WriteLine(self, message, colour):
     message = formatForDisplay(message)
     rawMessage = message
-    message = "<font color='" + message + "'>" + message + "</font>"
+    message = "<font color='" + colour + "'>" + message + "</font>"
     try:
       if message == "":
         return
