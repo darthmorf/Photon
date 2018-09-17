@@ -33,11 +33,6 @@ NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keep
 MAXTRANSMISSIONSIZE = 4096
 COMMANDCHAR = "/"
 
-BLACK = "#000000"
-COMMANDERROR = "#ff3030"
-WHISPER = "#636363"
-
-
 
 # Classes
 

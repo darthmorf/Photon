@@ -74,7 +74,7 @@ class DataBase:
         for message in messages:
           self.roCursor.execute("SELECT name FROM Users WHERE id == ?", (str(message[1]),))
           username = self.roCursor.fetchall()[0][0]
-          constructedMessage = Message(message[1], username, message[2], message[3], message[4])
+          constructedMessage = Message(message[1], username, message[2], message[3], message[4], message[5])
           Messages.append(constructedMessage)
     except Exception:
         ReportError()
@@ -166,13 +166,13 @@ class Client:
       messagesToSend = []
       newMessagesToSend = []
       for message in reversed(Messages): # reversed as we want the latest messages
-        # CHECK FOR RECIPIENT IDS HERE
-        newMessagesToSend.append(message)
-        if len(encode(newMessagesToSend)) >= MAXTRANSMISSIONSIZE - 200: # We need a buffer of ~200 as when we construct the class the encoded size increases
-          newMessagesToSend = messagesToSend
-          break
-        else:
-          messagesToSend = newMessagesToSend
+        if message.recipientId == 1 or message.senderId == self.userid or message.recipientId == self.userid:
+          newMessagesToSend.append(message)
+          if len(encode(newMessagesToSend)) >= MAXTRANSMISSIONSIZE - 200: # We need a buffer of ~200 as when we construct the class the encoded size increases
+            newMessagesToSend = messagesToSend
+            break
+          else:
+            messagesToSend = newMessagesToSend
       newMessageListPacket = MessageListPacket(reversed(messagesToSend)) # Send the client the previous messages
       self.socket.send(encode(newMessageListPacket))
 
@@ -239,10 +239,10 @@ class Client:
               if client.username == targetName:
                 targetClient = client
                 success = True
-                message = "(Whisper) " + " ".join(args)
-                response = "_" + formatUsername(self.username) + message + "_"
-                #newMessage = Message(self.userid, message, GetDateTime(), targetClient.userid)
-                #Database.AddMessage(newMessage)
+                message = "_ (Whisper) " + " ".join(args) + "_"
+                response = formatUsername(self.username) + message
+                newMessage = Message(self.userid, self.username, message, GetDateTime(), targetClient.userid, WHISPER)
+                Database.AddMessage(newMessage)
                 break
             else:
               err = "Could not find user with name " + targetName
@@ -251,7 +251,9 @@ class Client:
             err = "Unrecognised command"
 
           response = CommandResponsePacket(command, success, err, response, GetDateTime())
-          targetClient.socket.send(encode(response)) # TODO send to sender too
+          self.socket.send(encode(response))
+          if targetClient != self:
+            targetClient.socket.send(encode(response))
           
     except ConnectionResetError: # Lost connection with client
       print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
