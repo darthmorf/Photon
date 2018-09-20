@@ -156,7 +156,7 @@ class LoginWindow(QDialog):
 
   def Login(self, username, password):
     try:
-      global ServerSocket, Username, UserID
+      global ServerSocket, Username, UserId
       password = HashString(password)
       loginRequest = LoginRequestPacket(username, password)
       ServerSocket.send(encode(loginRequest))
@@ -233,6 +233,7 @@ class RegisterWindow(QDialog):
 def SendMessage(message):
   try:
       global ServerSocket, Username
+      print(UserId)
       newMessage = Message(UserId, Username, message)
       newMessagePacket = MessagePacket(newMessage)
       ServerSocket.send(encode(newMessagePacket))
