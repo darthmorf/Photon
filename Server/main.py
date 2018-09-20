@@ -31,7 +31,7 @@ class DataBase:
     try:
       self.roConnection = sqlite3.connect("file:photon.db?mode=ro", uri=True) # Load database from file in read only mode
       self.roCursor = self.roConnection.cursor()
-      self.writeQueue = []
+      self.writeQueue = CircularQueue(999)
       self.writeThread = Thread(target=self.DbWriter)
       self.writeThread.start()
     except Exception:
@@ -41,13 +41,13 @@ class DataBase:
   def DbWriter(self): # All writes to the database done from one thread and queued
     try:
       while True:
-        if len(self.writeQueue) > 0:
+        if not self.writeQueue.isEmpty():
           connection = sqlite3.connect("photon.db")
           cursor = connection.cursor()
-          cursor.execute(self.writeQueue[0][0], self.writeQueue[0][1]) # Execute SQL command
+          command = self.writeQueue.deQueue()
+          cursor.execute(command[0], command[1]) # Execute SQL command
           connection.commit() # Save changes to DB
-          self.writeQueue[0][2].release()  # Release semaphore flag so the client thread can continue
-          del self.writeQueue[0]
+          command[2].release()  # Release semaphore flag so the client thread can continue
           connection.close()
     except Exception:
       ReportError()
@@ -89,7 +89,7 @@ class DataBase:
   
   def AddUser(self, username, password):
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
-    self.writeQueue.append(("insert into Users(name, password) values (?, ?)", (username, password), semaphore))
+    self.writeQueue.enQueue(("insert into Users(name, password) values (?, ?)", (username, password), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
@@ -97,7 +97,7 @@ class DataBase:
     global Messages
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
     Messages.append(message)
-    self.writeQueue.append(("insert into Messages(senderId, message, timeSent, recipientId, colour) values (?,?,?,?,?)", (str(message.senderId), message.contents, message.timeSent, message.recipientId, message.colour), semaphore))
+    self.writeQueue.enQueue(("insert into Messages(senderId, message, timeSent, recipientId, colour) values (?,?,?,?,?)", (str(message.senderId), message.contents, message.timeSent, message.recipientId, message.colour), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 

@@ -8,6 +8,36 @@ COMMANDERROR = "#ff3030"
 WHISPER = "#636363"
 
 
+class CircularQueue():
+  def __init__(self, maxSize):
+    if maxSize < 1:
+      raise ValueError("Queue size must be at least 1")
+    self.data = [''] * maxSize
+    self.rear = -1
+    self.front= 0
+    self.size = 0
+    self.maxSize = maxSize
+
+  def enQueue(self, item):
+    if self.size == self.maxSize:
+      raise ValueError("Cannot enqueue when the queue is full")
+    else:
+      self.rear = (self.rear + 1) % self.maxSize
+      self.data[self.rear] = item
+      self.size = self.size + 1
+
+  def deQueue(self):
+    self.front += 1
+    self.size -= 1
+    return self.data[self.front-1]
+
+  def isFull(self):
+    return self.size == self.rear
+
+  def isEmpty(self):
+    return self.size == 0
+
+
 class Message():
   def __init__(self, senderId, senderName, contents, timeSent="", recipientId=1, colour="#000000"):
     self.senderId = senderId
