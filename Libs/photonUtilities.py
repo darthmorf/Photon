@@ -77,6 +77,75 @@ def HashString(string):
   return hashed
 
 
+def IntegerMergeSort(mergelist):
+    if len(mergelist) > 1:
+        mid = len(mergelist) // 2 # Perform integer division
+        lefthalf = mergelist[:mid] # Left half of merglist into lefthalf
+        righthalf = mergelist[mid:] # Right half of merglist into righthalf
+        lefthalf = MergeSort(lefthalf)
+        righthalf = MergeSort(righthalf)
+
+        i = 0
+        j = 0
+        k = 0
+        while i < len(lefthalf) and j < len(righthalf):
+            if lefthalf[i] < righthalf[j]:
+                mergelist[k] = lefthalf[i]
+                i += 1
+            else:
+                mergelist[k] = righthalf[j]
+                j += 1
+            k += 1
+
+        # Check if left half has elements not merged
+        while i < len(lefthalf):
+            mergelist[k] = lefthalf[i] # If so, add to mergelist
+            i += 1
+            k += 1
+        # Check if right half has elements not merged
+        while j < len(righthalf):
+            mergelist[k] = righthalf[j] # If so, add to mergelist
+            j += 1
+            k += 1
+    return mergelist
+
+
+def StringListMergeSort(mergelist):
+    if len(mergelist) > 1:
+        mid = len(mergelist) // 2 # Perform integer division
+        lefthalf = mergelist[:mid] # Left half of merglist into lefthalf
+        righthalf = mergelist[mid:] # Right half of merglist into righthalf
+        lefthalf = StringListMergeSort(lefthalf)
+        righthalf = StringListMergeSort(righthalf)
+
+        i = 0
+        j = 0
+        k = 0
+        while i < len(lefthalf) and j < len(righthalf):
+            l = 0
+            while ord(lefthalf[i][l]) == ord(righthalf[j][l]) and l < len(lefthalf[i])-1 and l < len(righthalf[j])-1: # If the charachers are the same, we must look at the next one until the end
+                l += 1
+            if ord(lefthalf[i][l]) < ord(righthalf[j][l]):
+                mergelist[k] = lefthalf[i]
+                i += 1
+            else:
+                mergelist[k] = righthalf[j]
+                j += 1
+            k += 1
+
+        # Check if left half has elements not merged
+        while i < len(lefthalf):
+            mergelist[k] = lefthalf[i] # If so, add to mergelist
+            i += 1
+            k += 1
+        # Check if right half has elements not merged
+        while j < len(righthalf):
+            mergelist[k] = righthalf[j] # If so, add to mergelist
+            j += 1
+            k += 1
+    return mergelist
+
+
 def ReportError():
   traceback.print_exc()
 

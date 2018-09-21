@@ -232,7 +232,7 @@ class Client:
             success = True
             response = "Pong!"
 
-          if command == "whisper":
+          elif command == "whisper":
             targetName = args[0]
             del args[0]
             for client in Clients:
@@ -294,7 +294,7 @@ def SendUserListPacket():
     users = []
     for client in Clients:
       users.append(client.username)
-    users.sort()
+    users = StringListMergeSort(users)
     userListPacket = UserListPacket(users)
     SendToClients(userListPacket)
   except Exception:
