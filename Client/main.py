@@ -295,12 +295,23 @@ def ListenForPackets(server):
 
       elif packet.type == "COMMANDRESPONSE":
         if packet.success:
-          if packet.command == "ping":
+          if packet.command == "help":
+            printLine(packet.response[0])
+            for i in range(1, len(packet.response)):
+              printLine(" - *" + packet.response[i][0] + "* : " + packet.response[i][1])
+
+          if packet.command == "markup":
+            printLine(packet.response[0])
+            printLine(packet.response[1])
+            for i in range(2, len(packet.response)):
+              printLine(" - " + packet.response[i][0] + ", " + packet.response[i][1] + " : " + packet.response[i][2])
+          
+          elif packet.command == "ping":
             printLine(packet.response, WHISPER)
 
           elif packet.command == "whisper":
-            printLine(formatDateTime(packet.timeSent) + packet.response, WHISPER)            
-
+            printLine(formatDateTime(packet.timeSent) + packet.response, WHISPER)
+            
         else:
           printLine("Error executing command '" + packet.command + "' - " + packet.err, COMMANDERROR)
           
