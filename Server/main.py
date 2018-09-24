@@ -227,8 +227,27 @@ class Client:
           response = ""
           targetClient = self
           print("User " + self.username + ", " + str(self.id) + " executed command " + command + " with args " + str(args))
+
+          if command == "help":
+            success = True
+            response = ["!*Available Commands*!",
+                        ("help","provides a list of available commands"),
+                        ("ping","pings the server"),
+                        ("whisper <user> <message>","sends a direct message to <user>"),
+                        ("markup","displays balsamiq markup syntax")
+                        ]
+
+          elif command == "markup":
+            success = True
+            response = ["!*Markup Syntax*!",
+                        "Formats can be combined and symbols can be escaped with '\\'",
+                        ("bold", "*example*", "\*example*"),
+                        ("italic", "_example_", "\_example_"),
+                        ("strikethrough", "~example~", "\~example"),
+                        ("underline", "!example!", "\!example!")
+                        ]
           
-          if command == "ping":
+          elif command == "ping":
             success = True
             response = "Pong!"
 
