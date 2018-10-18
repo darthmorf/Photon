@@ -11,7 +11,7 @@ import time
 import datetime
 
 from PyQt5.QtCore import pyqtSlot, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QMessageBox, QWidget, QFormLayout, QScrollArea
 from PyQt5.uic import loadUi
 
 # Load classes and functions from shared libs
@@ -53,6 +53,7 @@ class MainWindow(QMainWindow):
       # Point the signals to the corresponding functions
       self.writeSignal.connect(self.WriteLine) 
       self.usersChangedSignal.connect(self.UpdateConnectedUsers)
+      self.messageWidget.setLayout(self.messageLayout)        
     except Exception:
       ReportError()
 
@@ -85,10 +86,11 @@ class MainWindow(QMainWindow):
       if message[-4:] != "<br>":
          message += "<br>"
 
-      cursor = self.chatBox.textCursor()
-      cursor.setPosition(len(self.chatBox.toPlainText()))
-      self.chatBox.setTextCursor(cursor)
-      self.chatBox.insertHtml(message)
+      newWidget = MessageWidget() # Create a new message widget
+      newWidget.messageLabel.setText(message) # Set the text of the message widget
+      rowCount = self.messageLayout.rowCount() # Get the amount of rows in the message container
+      self.messageLayout.setWidget(rowCount, QFormLayout.LabelRole, newWidget) # Append the new message widget to the end of the container
+
       debugPrint(rawMessage, Debug)
       App.alert(MainGui, 1000) # Flash the taskbar icon for 1 second
     except Exception:
@@ -115,6 +117,12 @@ class MainWindow(QMainWindow):
         self.messageInput.setText("")
     except Exception:
       ReportError()
+
+
+class MessageWidget(QWidget):
+  def __init__(self, parent=None):
+      super(MessageWidget, self).__init__(parent)
+      loadUi("message.ui", self)
 
 
 class LoginWindow(QDialog):
