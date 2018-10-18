@@ -88,6 +88,7 @@ class MainWindow(QMainWindow):
       self.chatBox.setTextCursor(cursor)
       self.chatBox.insertHtml(message)
       print(rawMessage)
+      App.alert(MainGui, 1000) # Flash the taskbar icon for 1 second
     except Exception:
       ReportError()
 
