@@ -23,7 +23,9 @@ from photonUtilities import *
 
 
 # Global vars
+Debug = False
 
+App = None
 MainGui = None
 ServerSocket = None
 Username = ""
@@ -66,7 +68,7 @@ class MainWindow(QMainWindow):
     try:
       # Not using onProgramExit() as it caused the program to hang when the UI is created
       global ServerSocket
-      print("Window closed: Force closing all threads and server socket")
+      debugPrint("Window closed: Force closing all threads and server socket", Debug)
       ServerSocket.close()
       os._exit(1)
     except Exception:
@@ -87,7 +89,7 @@ class MainWindow(QMainWindow):
       cursor.setPosition(len(self.chatBox.toPlainText()))
       self.chatBox.setTextCursor(cursor)
       self.chatBox.insertHtml(message)
-      print(rawMessage)
+      debugPrint(rawMessage, Debug)
       App.alert(MainGui, 1000) # Flash the taskbar icon for 1 second
     except Exception:
       ReportError()
@@ -234,7 +236,7 @@ class RegisterWindow(QDialog):
 def SendMessage(message):
   try:
       global ServerSocket, Username
-      print(UserId)
+      debugPrint(UserId, Debug)
       newMessage = Message(UserId, Username, message)
       newMessagePacket = MessagePacket(newMessage)
       ServerSocket.send(encode(newMessagePacket))
@@ -264,7 +266,7 @@ def printLine(message, colour="#000000"):
 def onProgramExit():
   try:
     global ServerSocket
-    print("Window closed: Force closing all threads and server socket")
+    debugPrint("Window closed: Force closing all threads and server socket", Debug)
     ServerSocket.close()
     os._exit(1)
   except Exception:
@@ -404,8 +406,8 @@ def __main__():
     ServerSocket.connect((host, port))
 
     # Display UI
-    global GuiDone, MainGui
-    app = QApplication(sys.argv)
+    global GuiDone, App, MainGui
+    App = QApplication(sys.argv)
     MainGui = MainWindow()
     loginGui = LoginWindow()
     loginGui.exec_()
@@ -418,7 +420,7 @@ def __main__():
     listenerThread = Thread(target=ListenForPackets, args=(ServerSocket,))
     listenerThread.start()
 
-    sys.exit(app.exec_())
+    sys.exit(App.exec_())
       
   except Exception:
       ReportError()

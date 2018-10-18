@@ -162,6 +162,10 @@ def formatDateTime(time):
   return "" + time + " | "
 
 
+def debugPrint(message, Debug):
+  if Debug:
+    print(message)
+
 # Dumps and Loads are not well named
 def encode(packet):
   return pickle.dumps(packet)
