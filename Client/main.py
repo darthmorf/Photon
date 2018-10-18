@@ -30,7 +30,7 @@ Username = ""
 UserId = None
 
 NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
-MAXTRANSMISSIONSIZE = 4096
+MAXTRANSMISSIONSIZE = 40960
 COMMANDCHAR = "/"
 
 

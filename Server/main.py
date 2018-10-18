@@ -20,7 +20,7 @@ Messages = []
 Clients  = []
 Database = None
 
-MAXTRANSMISSIONSIZE = 4096
+MAXTRANSMISSIONSIZE = 40960
 
 
 
