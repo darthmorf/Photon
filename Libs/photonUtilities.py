@@ -168,6 +168,10 @@ def formatDateTime(time):
     return "" + time + " | "
 
 
+def generateJoinLeaveMessage(direction, username):
+  return Message(1, "SERVER", "_" + username + " has " + direction + " the server_", GetDateTime(), colour=INFO)
+
+
 def debugPrint(message, Debug):
   if Debug:
     print(message)

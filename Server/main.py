@@ -177,7 +177,7 @@ class Client:
       self.socket.send(encode(newMessageListPacket))
 
       
-      newMessage = Message(1, "SERVER", " --- " + self.username + " has joined the server ---", GetDateTime(), colour=WHISPER)
+      newMessage = generateJoinLeaveMessage("joined", self.username)
       announceUserPacket = MessagePacket(newMessage) # Client has joined message
       Database.AddMessage(newMessage)
       SendToClients(announceUserPacket)
@@ -197,7 +197,7 @@ class Client:
           break
 
       if self.username != "UNKNOWN":
-        newMessage = Message(1, "SERVER", " --- " + self.username + " has left the server ---", GetDateTime(), colour=WHISPER)
+        newMessage = generateJoinLeaveMessage("left", self.username)
         announceUserPacket = MessagePacket(newMessage)
         Database.AddMessage(newMessage)
         SendToClients(announceUserPacket)
@@ -283,7 +283,7 @@ class Client:
           del Clients[i] # Delete class instance
           break
 
-      newMessage = Message(1, "SERVER", " --- " + self.username + " has left the server ---", GetDateTime(), colour=WHISPER)
+      newMessage = generateJoinLeaveMessage("left", self.username)
       announceUserPacket = MessagePacket(newMessage)
       Database.AddMessage(newMessage)
       SendToClients(announceUserPacket)
