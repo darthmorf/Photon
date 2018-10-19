@@ -44,6 +44,9 @@
    <property name="bottomMargin">
     <number>0</number>
    </property>
+   <property name="horizontalSpacing">
+    <number>2</number>
+   </property>
    <item row="0" column="3">
     <widget class="QLabel" name="messageLabel">
      <property name="sizePolicy">
