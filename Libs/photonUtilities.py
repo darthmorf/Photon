@@ -39,7 +39,7 @@ class CircularQueue():
 
 
 class Message():
-  def __init__(self, senderId, senderName, contents, timeSent="", recipientId=1, colour="#000000"):
+  def __init__(self, senderId="", senderName="", contents="", timeSent="", recipientId=1, colour="#000000"):
     self.senderId = senderId
     self.senderName = senderName
     self.contents = contents
@@ -155,11 +155,17 @@ def GetDateTime():
 
 
 def formatUsername(name):
-  return "[" + name + "]: "
+  if name == "" or name == "SERVER":
+    return ""
+  else:
+    return "<" + name + ">: "
 
 
 def formatDateTime(time):
-  return "" + time + " | "
+  if time == "":
+    return ""
+  else:
+    return "" + time + " | "
 
 
 def debugPrint(message, Debug):

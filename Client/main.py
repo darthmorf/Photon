@@ -41,7 +41,7 @@ COMMANDCHAR = "/"
 class MainWindow(QMainWindow):
 
   # Signals for updating the GUI
-  writeSignal = pyqtSignal(str, str)
+  writeSignal = pyqtSignal(Message)
   usersChangedSignal = pyqtSignal(list)
 
   def __init__(self, *args):
@@ -76,20 +76,19 @@ class MainWindow(QMainWindow):
       ReportError()
 
 
-  def WriteLine(self, message, colour):
-    message = formatForDisplay(message)
+  def WriteLine(self, message):
+    rawMessage = message.contents
+    message.contents = formatTextForDisplay(message.contents, message.colour)
+    #message.timeSent = formatDateTime(message.timeSent)
+    message.senderName = formatUsername(message.senderName)
     rawMessage = message
-    message = "<font color='" + colour + "'>" + message + "</font>"
     try:
-      if message == "":
-        return
-      if message[-4:] != "<br>":
-         message += "<br>"
-
       newWidget = MessageWidget() # Create a new message widget
-      newWidget.messageLabel.setText(message) # Set the text of the message widget
+      newWidget.timeLabel.setText(message.timeSent)
+      newWidget.usernameLabel.setText(message.senderName)
+      newWidget.messageLabel.setText(message.contents)
       rowCount = self.messageLayout.rowCount() # Get the amount of rows in the message container
-      self.messageLayout.setWidget(rowCount, QFormLayout.LabelRole, newWidget) # Append the new message widget to the end of the container
+      self.messageLayout.setWidget(rowCount, QFormLayout.LabelRole, newWidget) # Append the new message widget to the end of the container    
 
       debugPrint(rawMessage, Debug)
       App.alert(MainGui, 1000) # Flash the taskbar icon for 1 second
@@ -267,8 +266,11 @@ def ParseCommand(command):
     ReportError()
     
 
-def printLine(message, colour="#000000"):
-  MainGui.writeSignal.emit(message, colour)
+def printMessage(message):
+  if type(message) is str:
+    message = Message(contents=message)
+
+  MainGui.writeSignal.emit(message)
 
 
 def onProgramExit():
@@ -293,10 +295,7 @@ def ListenForPackets(server):
 
       if packet.type == "MESSAGELIST":
         for message in packet.messageList:
-          if message.senderName == "SERVER":
-            printLine(formatDateTime(message.timeSent) + message.contents, message.colour)
-          else:
-            printLine(formatDateTime(message.timeSent) + formatUsername(message.senderName) + message.contents, message.colour)
+          printMessage(message)
              
       elif packet.type == "MESSAGE":
         formatMessage(packet)
@@ -307,24 +306,24 @@ def ListenForPackets(server):
       elif packet.type == "COMMANDRESPONSE":
         if packet.success:
           if packet.command == "help":
-            printLine(packet.response[0])
+            printMessage(packet.response[0])
             for i in range(1, len(packet.response)):
-              printLine(" - *" + packet.response[i][0] + "* : " + packet.response[i][1])
+              printMessage(" - *" + packet.response[i][0] + "* : " + packet.response[i][1])
 
           if packet.command == "markup":
-            printLine(packet.response[0])
-            printLine(packet.response[1])
+            printMessage(packet.response[0])
+            printMessage(packet.response[1])
             for i in range(2, len(packet.response)):
-              printLine(" - " + packet.response[i][0] + ", " + packet.response[i][1] + " : " + packet.response[i][2])
+              printMessage(" - " + packet.response[i][0] + ", " + packet.response[i][1] + " : " + packet.response[i][2])
           
           elif packet.command == "ping":
-            printLine(packet.response, WHISPER)
+            printMessage(Message(contents=packet.response, colour=WHISPER))
 
           elif packet.command == "whisper":
-            printLine(formatDateTime(packet.timeSent) + packet.response, WHISPER)
+            printMessage(Message(contents=formatDateTime(packet.timeSent) + packet.response, colour=WHISPER))
             
         else:
-          printLine("Error executing command '" + packet.command + "' - " + packet.err, COMMANDERROR)
+          printMessage(Message(contents="Error executing command '" + packet.command + "' - " + packet.err, colour=COMMANDERROR))
           
           
 
@@ -334,15 +333,12 @@ def ListenForPackets(server):
 
 def formatMessage(packet):
   try:
-    if packet.message.senderName == "SERVER":
-      printLine(formatDateTime(packet.message.timeSent) + packet.message.contents, packet.message.colour)
-    else:
-      printLine(formatDateTime(packet.message.timeSent) + formatUsername(packet.message.senderName) + packet.message.contents, packet.message.colour)
+    printMessage(packet.message)
   except Exception:
       ReportError()
         
 
-def formatForDisplay(message):
+def formatTextForDisplay(message, colour):
   try:
     message = cgi.escape(message) # Escape html code; sanitise input
     # Replace balsamiq chars in pairs with html
@@ -350,6 +346,8 @@ def formatForDisplay(message):
     message = formatBalsmaiq(message, "_", "i")
     message = formatBalsmaiq(message, "~", "s")
     message = formatBalsmaiq(message, "!", "u")
+
+    message = "<font color='" + colour + "'>" + message + "</font>"
 
     return message
   except Exception:
