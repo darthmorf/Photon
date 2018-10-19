@@ -317,10 +317,10 @@ def ListenForPackets(server):
               printMessage(" - " + packet.response[i][0] + ", " + packet.response[i][1] + " : " + packet.response[i][2])
           
           elif packet.command == "ping":
-            printMessage(Message(contents=packet.response, colour=WHISPER))
+            printMessage(Message(contents=packet.response, colour=INFO))
 
           elif packet.command == "whisper":
-            printMessage(Message(contents=formatDateTime(packet.timeSent) + packet.response, colour=WHISPER))
+            printMessage(Message(contents=formatDateTime(packet.timeSent) + packet.response, colour=INFO))
             
         else:
           printMessage(Message(contents="Error executing command '" + packet.command + "' - " + packet.err, colour=COMMANDERROR))

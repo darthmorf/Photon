@@ -5,7 +5,7 @@ import datetime
 # Global Colours
 BLACK = "#000000"
 COMMANDERROR = "#ff3030"
-WHISPER = "#636363"
+INFO = "#636363"
 
 
 class CircularQueue():

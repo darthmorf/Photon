@@ -260,7 +260,7 @@ class Client:
                 success = True
                 message = "_ (Whisper) " + " ".join(args) + "_"
                 response = formatUsername(self.username) + message
-                newMessage = Message(self.userid, self.username, message, GetDateTime(), targetClient.userid, WHISPER)
+                newMessage = Message(self.userid, self.username, message, GetDateTime(), targetClient.userid, INFO)
                 Database.AddMessage(newMessage)
                 break
             else:
