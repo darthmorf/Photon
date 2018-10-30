@@ -190,7 +190,7 @@ class Client:
       self.listenerThread = Thread(target=self.ListenForPackets) # Start thread to listen for packets from client
       self.listenerThread.start()
 
-      SendUserListPacket() # Tell clients a new user has joined
+      SendOnlineUsersPacket() # Tell clients a new user has joined
 
     except ConnectionResetError: # Lost connection with client
       print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
@@ -206,7 +206,7 @@ class Client:
         announceUserPacket = MessagePacket(newMessage)
         Database.AddMessage(newMessage)
         SendToClients(announceUserPacket)
-        SendUserListPacket() # Tell clients a user has left
+        SendOnlineUsersPacket() # Tell clients a user has left
           
       return # Return from thread
     except Exception:
@@ -292,7 +292,7 @@ class Client:
       announceUserPacket = MessagePacket(newMessage)
       Database.AddMessage(newMessage)
       SendToClients(announceUserPacket)
-      SendUserListPacket() # Tell clients a user has left
+      SendOnlineUsersPacket() # Tell clients a user has left
       
     except Exception:
       ReportError()
@@ -312,15 +312,15 @@ def SendToClients(packet):
     ReportError()
 
 
-def SendUserListPacket():
+def SendOnlineUsersPacket():
   try:
     global Clients
     users = []
     for client in Clients:
       users.append(client.username)
     users = StringListMergeSort(users)
-    userListPacket = UserListPacket(users)
-    SendToClients(userListPacket)
+    onlineUsersPacket = OnlineUsersPacket(users)
+    SendToClients(onlineUsersPacket)
   except Exception:
     ReportError()
 

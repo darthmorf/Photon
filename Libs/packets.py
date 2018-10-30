@@ -38,9 +38,9 @@ class MessageListPacket(Packet):
     Packet.__init__(self, "MESSAGELIST")
     self.messageList = messageList
 
-class UserListPacket(Packet):
+class OnlineUsersPacket(Packet):
   def __init__(self, userList):
-    Packet.__init__(self, "USERLIST")
+    Packet.__init__(self, "ONLINEUSERS")
     self.userList = userList
 
 class CommandPacket(Packet):

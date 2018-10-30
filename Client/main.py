@@ -322,7 +322,7 @@ def ListenForPackets(server):
       elif packet.type == "MESSAGE":
         formatMessage(packet)
 
-      elif packet.type == "USERLIST":
+      elif packet.type == "ONLINEUSERS":
         MainGui.usersChangedSignal.emit(packet.userList)
 
       elif packet.type == "COMMANDRESPONSE":
