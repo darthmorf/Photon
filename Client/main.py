@@ -47,14 +47,15 @@ class MainWindow(QMainWindow):
 
   def __init__(self, *args):
     try:
-      super(MainWindow, self).__init__(*args)
+      super().__init__(*args)
       loadUi("mainWindow.ui", self)
       self.messageInputButton.clicked.connect(self.onSendClick)
       self.messageInput.returnPressed.connect(self.onSendClick)
       # Point the signals to the corresponding functions
       self.writeSignal.connect(self.WriteLine) 
       self.usersChangedSignal.connect(self.UpdateConnectedUsers)
-      self.messageWidget.setLayout(self.messageLayout)        
+      self.messageWidget.setLayout(self.messageLayout)
+        
     except Exception:
       ReportError()
 
@@ -65,6 +66,20 @@ class MainWindow(QMainWindow):
     except Exception:
       ReportError()
 
+
+  def postLogin(self):
+    if not Admin:
+        self.adminSettingsButton.hide()
+    else:
+        self.adminSettingsButton.clicked.connect(self.openAdminSettings)
+        
+  def openAdminSettings(self):
+    try:
+      adminSettings = AdminSettingsWindow(self)
+      adminSettings.show()
+    except Exception:
+      ReportError()
+  
 
   def closeEvent(self, event):
     try:
@@ -121,14 +136,19 @@ class MainWindow(QMainWindow):
 
 class MessageWidget(QWidget):
   def __init__(self, parent=None):
-      super(MessageWidget, self).__init__(parent)
+      super().__init__(parent)
       loadUi("message.ui", self)
 
+
+class AdminSettingsWindow(QDialog):      
+  def __init__(self, *args):
+      super().__init__(*args)
+      loadUi("adminSettings.ui", self)
 
 class LoginWindow(QDialog):
   def __init__(self, *args):
     try:
-      super(LoginWindow, self).__init__(*args)
+      super().__init__(*args)
       loadUi("login.ui", self)
       self.loginButton.clicked.connect(self.onLoginClick)
       self.newAccButton.clicked.connect(self.openRegisterWindow)
@@ -167,7 +187,7 @@ class LoginWindow(QDialog):
 
   def Login(self, username, password):
     try:
-      global ServerSocket, Username, UserId
+      global ServerSocket, Username, UserId, Admin
       password = HashString(password)
       loginRequest = LoginRequestPacket(username, password)
       ServerSocket.send(encode(loginRequest))
@@ -193,7 +213,7 @@ class LoginWindow(QDialog):
 class RegisterWindow(QDialog):
   def __init__(self, *args):
     try:
-      super(RegisterWindow, self).__init__(*args)
+      super().__init__(*args)
       loadUi("register.ui", self)
       self.registerButton.clicked.connect(self.validateInputs)
     except Exception:
@@ -419,6 +439,7 @@ def __main__():
     MainGui = MainWindow()
     loginGui = LoginWindow()
     loginGui.exec_()
+    MainGui.postLogin()
     if Username == "": # Window was closed without an input
       os._exit(1)
     MainGui.setUsername(Username)
