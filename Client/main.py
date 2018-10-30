@@ -75,8 +75,8 @@ class MainWindow(QMainWindow):
         
   def openAdminSettings(self):
     try:
-      adminSettings = AdminSettingsWindow(self)
-      adminSettings.show()
+      self.adminSettings = AdminSettingsWindow(self)
+      self.adminSettings.show()
     except Exception:
       ReportError()
   
@@ -144,6 +144,13 @@ class AdminSettingsWindow(QDialog):
   def __init__(self, *args):
       super().__init__(*args)
       loadUi("adminSettings.ui", self)
+      requestUserListPacket = Packet("REQUESTUSERLIST")
+      ServerSocket.send(encode(requestUserListPacket))
+
+  def UserListReceived(self, userList):
+    for user in userList:
+      self.userListComboBox.addItem(user[1])
+
 
 class LoginWindow(QDialog):
   def __init__(self, *args):
@@ -346,6 +353,14 @@ def ListenForPackets(server):
             
         else:
           printMessage(Message(contents="Error executing command '" + packet.command + "' - " + packet.err, colour=COMMANDERROR))
+
+
+      elif packet.type == "USERLIST":
+        MainGui.adminSettings.UserListReceived(packet.userList)
+
+
+      else:
+          print("Unknown packet received: " + packet.type)
           
           
 

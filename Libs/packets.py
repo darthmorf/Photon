@@ -43,6 +43,11 @@ class OnlineUsersPacket(Packet):
     Packet.__init__(self, "ONLINEUSERS")
     self.userList = userList
 
+class UserListPacket(Packet):
+  def __init__(self, userList):
+    Packet.__init__(self, "USERLIST")
+    self.userList = userList
+
 class CommandPacket(Packet):
   def __init__(self, command, args=[]):
     Packet.__init__(self, "COMMAND")

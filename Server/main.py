@@ -89,6 +89,15 @@ class DataBase:
       return True
     else:
       return False
+
+
+  def ListUsers(self):
+    connection = sqlite3.connect("file:photon.db?mode=ro", uri=True)
+    cursor = connection.cursor()
+    cursor.execute("SELECT id, name, admin FROM Users WHERE name != 'SERVER'")
+    users = cursor.fetchall()
+    return users
+
   
   def AddUser(self, username, password):
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
@@ -278,6 +287,13 @@ class Client:
           self.socket.send(encode(response))
           if targetClient != self:
             targetClient.socket.send(encode(response))
+
+        elif packet.type == "REQUESTUSERLIST":
+          userlist = Database.ListUsers()
+          self.socket.send(encode(UserListPacket(userlist)))
+
+        else:
+          print("Unknown packet received: " + packet.type)
           
     except ConnectionResetError: # Lost connection with client
       print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
