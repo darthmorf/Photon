@@ -57,10 +57,13 @@ class DataBase:
     try:
       self.roCursor.execute("select * from Users")
       users = self.roCursor.fetchall()
-      for user in users: # [0]: id [1]: name [2]: password
+      for user in users: # [0]: id [1]: name [2]: password [3]: admin
         if user[1] == username and user[2] == password:
-          return [True, user[0]]
-      return [False]
+          if user[3] == 1:
+            return (True, user[0], True)
+          else:
+            return (True, user[0], False)
+      return (False)
     except Exception:
       ReportError()
 
@@ -113,6 +116,7 @@ class Client:
       self.thread = None
       self.username = "UNKNOWN"
       self.userid = ""
+      self.admin = False
       Clients.append(self)
 
       print("Received a connection from " + str(self.address) + ", id " + str(self.id))
@@ -154,10 +158,11 @@ class Client:
 
           else:
             print("Valid login from: " + str(self.address) + ", id " + str(self.id))
-            loginResponse = LoginResponsePacket(True, userId=ret[1]) # Tell the client the login was valid
+            loginResponse = LoginResponsePacket(True, userId=ret[1], admin=ret[2]) # Tell the client the login was valid
             self.socket.send(encode(loginResponse))
             self.userid = ret[1]
             self.username = loginRequestPacket.username
+            self.admin = ret[2]
             loginInvalid = False
           
       readyToListenPacket = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait until the client is ready to receive packets

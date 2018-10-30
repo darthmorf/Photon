@@ -30,6 +30,7 @@ MainGui = None
 ServerSocket = None
 Username = ""
 UserId = None
+Admin = False
 
 NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
 MAXTRANSMISSIONSIZE = 40960
@@ -88,7 +89,7 @@ class MainWindow(QMainWindow):
       newWidget.usernameLabel.setText(message.senderName)
       newWidget.messageLabel.setText(message.contents)
       rowCount = self.messageLayout.rowCount() # Get the amount of rows in the message container
-      self.messageLayout.setWidget(rowCount, QFormLayout.LabelRole, newWidget) # Append the new message widget to the end of the container    
+      self.messageLayout.setWidget(rowCount, QFormLayout.LabelRole, newWidget) # Append the new message widget to the end of the container   
 
       debugPrint(rawMessage, Debug)
       App.alert(MainGui, 1000) # Flash the taskbar icon for 1 second
@@ -181,6 +182,7 @@ class LoginWindow(QDialog):
         self.close()
         Username = username
         UserId = loginResponsePacket.id
+        Admin = loginResponsePacket.admin
         
       else:
         self.errLabel.setText(loginResponsePacket.err)
