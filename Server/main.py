@@ -55,7 +55,7 @@ class DataBase:
 
   def QueryLogin(self, username, password): # Return true if username & password are valid
     try:
-      self.roCursor.execute("select * from Users")
+      self.roCursor.execute("SELECT * FROM User")
       users = self.roCursor.fetchall()
       for user in users: # [0]: id [1]: name [2]: password [3]: admin
         if user[1] == username and user[2] == password:
@@ -72,10 +72,10 @@ class DataBase:
     try:
         global Messages
         lastX = 510
-        self.roCursor.execute("select * from Messages limit ? offset (select count(*) from Messages)-?", (str(lastX), str(lastX)))
+        self.roCursor.execute("SELECT * FROM Message limit ? offset (SELECT count(*) FROM Message)-?", (str(lastX), str(lastX)))
         messages = self.roCursor.fetchall()
         for message in messages:
-          self.roCursor.execute("SELECT name FROM Users WHERE id == ?", (str(message[1]),))
+          self.roCursor.execute("SELECT name FROM User WHERE user_id == ?", (str(message[1]),))
           username = self.roCursor.fetchall()[0][0]
           constructedMessage = Message(message[1], username, message[2], message[3], message[4], message[5])
           Messages.append(constructedMessage)
@@ -84,7 +84,7 @@ class DataBase:
 
 
   def UserExists(self, username):
-    self.roCursor.execute("SELECT name FROM Users WHERE name == ?", (username,))
+    self.roCursor.execute("SELECT name FROM User WHERE name == ?", (username,))
     if len(self.roCursor.fetchall()) > 0:
       return True
     else:
@@ -94,7 +94,7 @@ class DataBase:
   def ListUsers(self):
     connection = sqlite3.connect("file:photon.db?mode=ro", uri=True)
     cursor = connection.cursor()
-    cursor.execute("SELECT id, name, admin FROM Users WHERE name != 'SERVER'")
+    cursor.execute("SELECT user_id, name, admin FROM User WHERE name != 'SERVER'")
     users = cursor.fetchall()
     return users
   
@@ -102,9 +102,9 @@ class DataBase:
   def GetUserDetails(self, user):
     connection = sqlite3.connect("file:photon.db?mode=ro", uri=True)
     cursor = connection.cursor()
-    cursor.execute("SELECT id FROM Users WHERE name == ?", (user,))
+    cursor.execute("SELECT user_id FROM User WHERE name == ?", (user,))
     userId = cursor.fetchall()[0][0]
-    cursor.execute("SELECT count(*) FROM Messages WHERE senderId == ?", (userId,))
+    cursor.execute("SELECT count(*) FROM Message WHERE sender_id == ?", (userId,))
     messageCount = cursor.fetchall()[0][0]
     reportCount = 0
     return (userId, messageCount, reportCount)
@@ -112,7 +112,7 @@ class DataBase:
   
   def AddUser(self, username, password):
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
-    self.writeQueue.enQueue(("insert into Users(name, password) values (?, ?)", (username, password), semaphore))
+    self.writeQueue.enQueue(("INSERT into User(name, password) values (?, ?)", (username, password), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
@@ -120,7 +120,7 @@ class DataBase:
     global Messages
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
     Messages.append(message)
-    self.writeQueue.enQueue(("insert into Messages(senderId, message, timeSent, recipientId, colour) values (?,?,?,?,?)", (str(message.senderId), message.contents, message.timeSent, message.recipientId, message.colour), semaphore))
+    self.writeQueue.enQueue(("INSERT into Message(sender_id, message, timeSent, recipient_id, colour) values (?,?,?,?,?)", (str(message.senderId), message.contents, message.timeSent, message.recipientId, message.colour), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
