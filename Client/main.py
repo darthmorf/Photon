@@ -144,12 +144,22 @@ class AdminSettingsWindow(QDialog):
   def __init__(self, *args):
       super().__init__(*args)
       loadUi("adminSettings.ui", self)
+      self.userListComboBox.currentIndexChanged.connect(self.ComboBoxUpdated)
       requestUserListPacket = Packet("REQUESTUSERLIST")
       ServerSocket.send(encode(requestUserListPacket))
 
   def UserListReceived(self, userList):
     for user in userList:
       self.userListComboBox.addItem(user[1])
+
+  def ComboBoxUpdated(self):
+    requestUserInfoPacket = RequestUserInfoPacket(self.userListComboBox.currentText())
+    ServerSocket.send(encode(requestUserInfoPacket))
+
+  def UpdateUserInfo(self, userId, messageCount, reportCount):
+    self.userIdLabel.setText(str(userId))
+    self.messageCountLabel.setText(str(messageCount))
+    self.reportCountLabel.setText(str(reportCount))
 
 
 class LoginWindow(QDialog):
@@ -357,6 +367,10 @@ def ListenForPackets(server):
 
       elif packet.type == "USERLIST":
         MainGui.adminSettings.UserListReceived(packet.userList)
+
+
+      elif packet.type == "USERINFO":
+        MainGui.adminSettings.UpdateUserInfo(packet.id, packet.messageCount, packet.reportCount)
 
 
       else:

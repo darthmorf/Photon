@@ -48,6 +48,18 @@ class UserListPacket(Packet):
     Packet.__init__(self, "USERLIST")
     self.userList = userList
 
+class RequestUserInfoPacket(Packet):
+  def __init__(self, user):
+    Packet.__init__(self, "REQUESTUSERINFO")
+    self.user = user
+
+class UserInfoPacket(Packet):
+  def __init__(self, id, messageCount, reportCount):
+    Packet.__init__(self, "USERINFO")
+    self.id = id
+    self.messageCount = messageCount
+    self.reportCount = reportCount
+
 class CommandPacket(Packet):
   def __init__(self, command, args=[]):
     Packet.__init__(self, "COMMAND")

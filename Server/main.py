@@ -97,6 +97,17 @@ class DataBase:
     cursor.execute("SELECT id, name, admin FROM Users WHERE name != 'SERVER'")
     users = cursor.fetchall()
     return users
+  
+
+  def GetUserDetails(self, user):
+    connection = sqlite3.connect("file:photon.db?mode=ro", uri=True)
+    cursor = connection.cursor()
+    cursor.execute("SELECT id FROM Users WHERE name == ?", (user,))
+    userId = cursor.fetchall()[0][0]
+    cursor.execute("SELECT count(*) FROM Messages WHERE senderId == ?", (userId,))
+    messageCount = cursor.fetchall()[0][0]
+    reportCount = 0
+    return (userId, messageCount, reportCount)
 
   
   def AddUser(self, username, password):
@@ -291,6 +302,11 @@ class Client:
         elif packet.type == "REQUESTUSERLIST":
           userlist = Database.ListUsers()
           self.socket.send(encode(UserListPacket(userlist)))
+
+        elif packet.type == "REQUESTUSERINFO":
+          userinfo = Database.GetUserDetails(packet.user)
+          userInfoPacket = UserInfoPacket(userinfo[0], userinfo[1], userinfo[2])
+          self.socket.send(encode(userInfoPacket))
 
         else:
           print("Unknown packet received: " + packet.type)
