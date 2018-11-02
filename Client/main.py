@@ -11,7 +11,7 @@ import time
 import datetime
 
 from PyQt5.QtCore import pyqtSlot, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QMessageBox, QWidget, QFormLayout, QScrollArea
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QMessageBox, QWidget, QFormLayout, QScrollArea, QTableWidgetItem
 from PyQt5.uic import loadUi
 
 # Load classes and functions from shared libs
@@ -157,10 +157,21 @@ class AdminSettingsWindow(QDialog):
     ServerSocket.send(encode(requestUserInfoPacket))
 
   def UpdateUserInfo(self, userId, messageCount, flags):
-    print(flags)
     self.userIdLabel.setText(str(userId))
     self.messageCountLabel.setText(str(messageCount))
     self.reportCountLabel.setText(str(len(flags)))
+    
+    rowPosition = self.reportTable.rowCount()
+    for row in range(0, rowPosition):
+      self.reportTable.removeRow(1)
+
+    i = 1
+    for flag in flags:
+      self.reportTable.insertRow(i)
+      self.reportTable.setItem(i, 0, QTableWidgetItem(str(flag[0])))
+      self.reportTable.setItem(i, 1, QTableWidgetItem(str(flag[1])))
+      self.reportTable.setItem(i, 2, QTableWidgetItem(str(flag[2]) + " (ID: " + str(flag[3]) + ")"))
+      i += 1
 
 
 class LoginWindow(QDialog):

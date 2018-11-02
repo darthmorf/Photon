@@ -108,9 +108,17 @@ class DataBase:
     messageCount = cursor.fetchall()[0][0]
     cursor.execute("SELECT * FROM Flag WHERE reportedUser_id == ?", (userId,))
     flagged = cursor.fetchall()
-    
-    reportCount = 0
-    return (userId, messageCount, flagged)
+    flags = []
+    for flag in flagged:
+      cursor.execute("SELECT message FROM Message WHERE message_id == ?", (flag[2],))
+      message = cursor.fetchall()[0][0]
+      cursor.execute("SELECT name FROM User WHERE user_id == ?", (flag[3],))      
+      reporterName = cursor.fetchall()[0][0]
+      flags.append((message, flag[4], reporterName, flag[3]))
+    print(flagged)
+    print(flags)
+                   
+    return (userId, messageCount, flags)
 
   
   def AddUser(self, username, password):
