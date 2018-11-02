@@ -54,11 +54,11 @@ class RequestUserInfoPacket(Packet):
     self.user = user
 
 class UserInfoPacket(Packet):
-  def __init__(self, id, messageCount, reportCount):
+  def __init__(self, id, messageCount, flags):
     Packet.__init__(self, "USERINFO")
     self.id = id
     self.messageCount = messageCount
-    self.reportCount = reportCount
+    self.flags = flags
 
 class CommandPacket(Packet):
   def __init__(self, command, args=[]):

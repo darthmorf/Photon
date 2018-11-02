@@ -106,8 +106,11 @@ class DataBase:
     userId = cursor.fetchall()[0][0]
     cursor.execute("SELECT count(*) FROM Message WHERE sender_id == ?", (userId,))
     messageCount = cursor.fetchall()[0][0]
+    cursor.execute("SELECT * FROM Flag WHERE reportedUser_id == ?", (userId,))
+    flagged = cursor.fetchall()
+    
     reportCount = 0
-    return (userId, messageCount, reportCount)
+    return (userId, messageCount, flagged)
 
   
   def AddUser(self, username, password):

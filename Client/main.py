@@ -156,10 +156,11 @@ class AdminSettingsWindow(QDialog):
     requestUserInfoPacket = RequestUserInfoPacket(self.userListComboBox.currentText())
     ServerSocket.send(encode(requestUserInfoPacket))
 
-  def UpdateUserInfo(self, userId, messageCount, reportCount):
+  def UpdateUserInfo(self, userId, messageCount, flags):
+    print(flags)
     self.userIdLabel.setText(str(userId))
     self.messageCountLabel.setText(str(messageCount))
-    self.reportCountLabel.setText(str(reportCount))
+    self.reportCountLabel.setText(str(len(flags)))
 
 
 class LoginWindow(QDialog):
@@ -370,7 +371,7 @@ def ListenForPackets(server):
 
 
       elif packet.type == "USERINFO":
-        MainGui.adminSettings.UpdateUserInfo(packet.id, packet.messageCount, packet.reportCount)
+        MainGui.adminSettings.UpdateUserInfo(packet.id, packet.messageCount, packet.flags)
 
 
       else:
