@@ -9,6 +9,7 @@ import os
 import cgi
 import time
 import datetime
+import re
 
 from PyQt5.QtCore import pyqtSlot, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QMessageBox, QWidget, QFormLayout, QScrollArea, QTableWidgetItem
@@ -163,7 +164,9 @@ class MessageOptions(QDialog):
         loadUi("messageOptions.ui", self)
         self.timeLabel.setText(timestamp)
         self.usernameLabel.setText(user)
-        self.editMessage.setText(message)
+        resp = inverseFormatTextForDisplay(message)
+        self.editMessage.setText(resp[0])
+        self.messageColour = resp[1]
 
       except Exception:
         ReportError()
@@ -444,6 +447,20 @@ def formatTextForDisplay(message, colour):
     return message
   except Exception:
      ReportError()
+
+def inverseFormatTextForDisplay(message):
+    try:
+      colour = re.search("<font color='(.+?)'>", message).group(1) # Use regex to extract the hex colour code of the message
+      # Replace html pairs with balsamiq
+      message = re.sub("<b>|</b>", "*", message)
+      message = re.sub("<i>|</i>", "_", message)
+      message = re.sub("<s>|</s>", "~", message)
+      message = re.sub("<u>|</u>", "!", message)
+      message = re.sub('<[^<]+?>', '', message) # strip remaining html code
+
+      return (message, colour)
+    except Exception:
+      ReportError()
 
 
 def formatBalsmaiq(message, specialChar, tag):
