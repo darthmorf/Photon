@@ -147,6 +147,26 @@ class MessageWidget(QWidget):
   def __init__(self, parent=None):
       super().__init__(parent)
       loadUi("message.ui", self)
+      self.messageOptionBtn.clicked.connect(lambda: self.openMessageOptions())
+
+  def openMessageOptions(self):
+    try:
+      self.messageOptions = MessageOptions(self, timestamp=self.timeLabel.text(), user=self.usernameLabel.text(), message=self.messageLabel.text())
+      self.messageOptions.show()
+    except Exception:
+      ReportError()
+
+class MessageOptions(QDialog):
+   def __init__(self, *args, timestamp, user, message):
+      try:
+        super().__init__(*args)
+        loadUi("messageOptions.ui", self)
+        self.timeLabel.setText(timestamp)
+        self.usernameLabel.setText(user)
+        self.editMessage.setText(message)
+
+      except Exception:
+        ReportError()
 
 
 class AdminSettingsWindow(QDialog):      
