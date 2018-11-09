@@ -105,6 +105,7 @@ class MainWindow(QMainWindow):
       newWidget.messageLabel.setText(message.contents)
       rowCount = self.messageLayout.rowCount() # Get the amount of rows in the message container
       self.messageLayout.setWidget(rowCount, QFormLayout.LabelRole, newWidget) # Append the new message widget to the end of the container   
+      newWidget.setFixedWidth(self.messageScrollArea.width() - 10) # Set widget width to match the parent width
 
       debugPrint(rawMessage, Debug)
       App.alert(MainGui, 1000) # Flash the taskbar icon for 1 second
@@ -132,6 +133,14 @@ class MainWindow(QMainWindow):
         self.messageInput.setText("")
     except Exception:
       ReportError()
+
+
+  def resizeEvent(self, event): # Override the window resize event
+    width = self.messageScrollArea.width() - 10
+    messageWidgets = (self.messageLayout.itemAt(i) for i in range(self.messageLayout.count())) # Get a list of widgets in layout
+
+    for layoutItem in messageWidgets:
+      layoutItem.widget().setFixedWidth(width)
 
 
 class MessageWidget(QWidget):
