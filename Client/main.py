@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
 
   def setUsername(self, username):
     try:
-      self.usernameLabel.setText("Logged in as " + username)
+      self.usernameLabel.setText(f"Logged in as {username}")
     except Exception:
       ReportError()
 
@@ -114,11 +114,11 @@ class MainWindow(QMainWindow):
     
   def UpdateConnectedUsers(self, userList):
     userCount = len(userList)
-    self.userCountLabel.setText("Users Online: " + str(userCount))
+    self.userCountLabel.setText(f"Users Online: {userCount}")
     
     self.userListBox.clear()
     for user in userList:
-      self.userListBox.insertHtml(user + "<br>")
+      self.userListBox.insertHtml(f"{user} <br>")
 
 
   def onSendClick(self):
@@ -170,7 +170,7 @@ class AdminSettingsWindow(QDialog):
       self.reportTable.insertRow(i)
       self.reportTable.setItem(i, 0, QTableWidgetItem(str(flag[0])))
       self.reportTable.setItem(i, 1, QTableWidgetItem(str(flag[1])))
-      self.reportTable.setItem(i, 2, QTableWidgetItem(str(flag[2]) + " (ID: " + str(flag[3]) + ")"))
+      self.reportTable.setItem(i, 2, QTableWidgetItem(f"{flag[2]} (ID: {flag[3]})"))
       i += 1
 
 
@@ -277,7 +277,7 @@ class RegisterWindow(QDialog):
       if registerResponse.valid:
         successNotifier = QMessageBox()
         successNotifier.setIcon(QMessageBox.Information)
-        successNotifier.setText("Successfully registered user '" + username + "'")
+        successNotifier.setText(f"Successfully registered user '{username}'")
         successNotifier.setWindowTitle("Account creation successful")
         successNotifier.exec_()
         self.close()
@@ -359,13 +359,13 @@ def ListenForPackets(server):
           if packet.command == "help":
             printMessage(packet.response[0])
             for i in range(1, len(packet.response)):
-              printMessage(" - *" + packet.response[i][0] + "* : " + packet.response[i][1])
+              printMessage(f" - *{packet.response[i][0]}* : {packet.response[i][1]}")
 
           if packet.command == "markup":
             printMessage(packet.response[0])
             printMessage(packet.response[1])
             for i in range(2, len(packet.response)):
-              printMessage(" - " + packet.response[i][0] + ", " + packet.response[i][1] + " : " + packet.response[i][2])
+              printMessage(f" - {packet.response[i][0]}, {packet.response[i][1]} : {packet.response[i][2]}")
           
           elif packet.command == "ping":
             printMessage(Message(contents=packet.response, colour=INFO))
@@ -374,7 +374,7 @@ def ListenForPackets(server):
             printMessage(Message(contents=formatDateTime(packet.timeSent) + packet.response, colour=INFO))
             
         else:
-          printMessage(Message(contents="Error executing command '" + packet.command + "' - " + packet.err, colour=COMMANDERROR))
+          printMessage(Message(contents=f"Error executing command '{packet.command}' - {packet.err}", colour=COMMANDERROR))
 
 
       elif packet.type == "USERLIST":
@@ -386,7 +386,7 @@ def ListenForPackets(server):
 
 
       else:
-          print("Unknown packet received: " + packet.type)
+          print(f"Unknown packet received: {packet.type}")
           
           
 
@@ -410,7 +410,7 @@ def formatTextForDisplay(message, colour):
     message = formatBalsmaiq(message, "~", "s")
     message = formatBalsmaiq(message, "!", "u")
 
-    message = "<font color='" + colour + "'>" + message + "</font>"
+    message = f"<font color='{colour}'> {message} </font>"
 
     return message
   except Exception:
@@ -442,8 +442,8 @@ def formatBalsmaiq(message, specialChar, tag):
       charInstances = charInstances[:-1]
 
     for i in range(0, len(charInstances), 2): # Replace pairs of balsamiq with html code
-      message[charInstances[i]] = "<" + tag + ">"
-      message[charInstances[i + 1]] = "</" + tag + ">"
+      message[charInstances[i]] = f"<{tag}>"
+      message[charInstances[i + 1]] = f"</{tag}>"
 
     message = "".join(message) # Convert back to string
     return message

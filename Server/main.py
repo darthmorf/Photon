@@ -150,7 +150,7 @@ class Client:
       self.admin = False
       Clients.append(self)
 
-      print("Received a connection from " + str(self.address) + ", id " + str(self.id))
+      print(f"Received a connection from {self.address}, id {self.id}")
 
       # Client Login
       loginInvalid = True
@@ -183,12 +183,12 @@ class Client:
             valid = ret[0]
             
           if not valid:
-            print("Invalid login from: " + str(self.address) + ", id " + str(self.id) + " - " + err)
+            print(f"Invalid login from: {self.address}, id {self.id} - {err}")
             loginResponse = LoginResponsePacket(False, err) # Tell the client the login was invalid
             self.socket.send(encode(loginResponse))
 
           else:
-            print("Valid login from: " + str(self.address) + ", id " + str(self.id))
+            print(f"Valid login from: {self.address}, id {self.id}")
             loginResponse = LoginResponsePacket(True, userId=ret[1], admin=ret[2]) # Tell the client the login was valid
             self.socket.send(encode(loginResponse))
             self.userid = ret[1]
@@ -224,7 +224,7 @@ class Client:
       SendOnlineUsersPacket() # Tell clients a new user has joined
 
     except ConnectionResetError: # Lost connection with client
-      print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
+      print(f"Lost connection with: {self.address}, id {self.id}; closing connection")
       
       self.socket.close() # Close socket
       for i in range(0, len(Clients)):
@@ -262,7 +262,7 @@ class Client:
           err = ""
           response = ""
           targetClient = self
-          print("User " + self.username + ", " + str(self.id) + " executed command " + command + " with args " + str(args))
+          print(f"User {self.username}, {self.id} executed command {command} with args {args}")
 
           if command == "help":
             success = True
@@ -300,7 +300,7 @@ class Client:
                 Database.AddMessage(newMessage)
                 break
             else:
-              err = "Could not find user with name " + targetName
+              err = f"Could not find user with name {targetName}"
 
           else:
             err = "Unrecognised command"
@@ -320,10 +320,10 @@ class Client:
           self.socket.send(encode(userInfoPacket))
 
         else:
-          print("Unknown packet received: " + packet.type)
+          print(f"Unknown packet received: {packet.type}")
           
     except ConnectionResetError: # Lost connection with client
-      print("Lost connection with: " + str(self.address) + ", id " + str(self.id) + "; closing connection")
+      print(f"Lost connection with: {self.address}, id {self.id}; closing connection")
       
       self.socket.close() # Close socket
       for i in range(0, len(Clients)):
