@@ -16,9 +16,9 @@ from photonUtilities import *
 
 # Global Variables
 
-Messages = []
-Clients  = []
-Database = None
+_messages = []
+_clients  = []
+_database = None
 
 MAXTRANSMISSIONSIZE = 40960
 
@@ -26,19 +26,37 @@ MAXTRANSMISSIONSIZE = 40960
 
 # Classes
 
-class DataBase:
+class Database:
+  """
+  Contains all methods relating to reading and writing from the database.
+
+  Attributes:
+    roConnection (sqlite3.Connection): The main read only database connection. Used for most get functions.
+    roCursor  (sqlite3.Cursor): The cursor for the main read only connection.
+    writeQueue (photonUtilities.CircularQueue): The queue used for database write commands in the dbWriter() method.
+    writeThread (threading.Thread): The separate thread started for the database writer.
+
+  ToDo:
+    Get database file to load via parameter.
+    Move to seperate file.
+  """
   def __init__(self):
+    """ Initialises the database by creating a read only connection and starting the asyncronous writer function """
     try:
       self.roConnection = sqlite3.connect("file:photon.db?mode=ro", uri=True) # Load database from file in read only mode
       self.roCursor = self.roConnection.cursor()
       self.writeQueue = CircularQueue(999)
-      self.writeThread = Thread(target=self.DbWriter)
+      self.writeThread = Thread(target=self.dbWriter)
       self.writeThread.start()
     except Exception:
       ReportError()
 
     
-  def DbWriter(self): # All writes to the database done from one thread and queued
+  def dbWriter(self): 
+    """
+    Writes all SQL statements in the queue sequentially as writes to the database must be done one at a time.
+    Should be run asynchronously.]
+    """
     try:
       while True:
         if not self.writeQueue.isEmpty():
@@ -53,7 +71,17 @@ class DataBase:
       ReportError()
 
 
-  def QueryLogin(self, username, password): # Return true if username & password are valid
+  def queryLogin(self, username, password):
+    """
+    Checks whether supplied login credenitals are valid.
+
+    Args:
+      username (string): the username of the user account to check.
+      password (string): the password of the user account to check. Should be a hash of the password, not the plaintext.
+
+    Returns:
+      (bool): True if login successful, False if unsuccessful.
+    """
     try:
       self.roCursor.execute("SELECT * FROM User")
       users = self.roCursor.fetchall()
@@ -68,22 +96,39 @@ class DataBase:
       ReportError()
 
 
-  def LoadMessages(self): # Load last x messages from database
+  def loadMessages(self, count=510): # Load last x messages from database
+    """
+    Loads the most recent messages from the database, and stores them globally.
+
+    Args:
+      count (int, optional): the amount of messages to load from the database.
+
+    ToDo:
+      return rather than store globally.
+    """
     try:
-        global Messages
-        lastX = 510
-        self.roCursor.execute("SELECT * FROM Message limit ? offset (SELECT count(*) FROM Message)-?", (str(lastX), str(lastX)))
+        global _messages
+        self.roCursor.execute("SELECT * FROM Message limit ? offset (SELECT count(*) FROM Message)-?", (str(count), str(count)))
         messages = self.roCursor.fetchall()
         for message in messages:
           self.roCursor.execute("SELECT name FROM User WHERE user_id == ?", (str(message[1]),))
           username = self.roCursor.fetchall()[0][0]
           constructedMessage = Message(message[1], username, message[2], message[3], message[4], message[5])
-          Messages.append(constructedMessage)
+          _messages.append(constructedMessage)
     except Exception:
         ReportError()
 
 
-  def UserExists(self, username):
+  def userExists(self, username):
+    """
+    Check to see if a user with specific username exists.
+
+    Args:
+      username (string): the username of the user to lookup.
+
+    Returns:
+      (bool): True if the user exists, False if the user does not.
+    """
     self.roCursor.execute("SELECT name FROM User WHERE name == ?", (username,))
     if len(self.roCursor.fetchall()) > 0:
       return True
@@ -91,7 +136,16 @@ class DataBase:
       return False
 
 
-  def ListUsers(self):
+  def listUsers(self):
+    """
+    Gets a list of all registered users
+
+    Returns:
+      (list of (int, string, bool)): Returns a list of tuples conaining the userId, username and whether they're admin.
+
+    ToDo:
+      Limit the amount of users that can be fetched at once.
+    """
     connection = sqlite3.connect("file:photon.db?mode=ro", uri=True)
     cursor = connection.cursor()
     cursor.execute("SELECT user_id, name, admin FROM User WHERE name != 'SERVER'")
@@ -99,48 +153,92 @@ class DataBase:
     return users
   
 
-  def GetUserDetails(self, user):
-    connection = sqlite3.connect("file:photon.db?mode=ro", uri=True)
-    cursor = connection.cursor()
-    cursor.execute("SELECT user_id FROM User WHERE name == ?", (user,))
-    userId = cursor.fetchall()[0][0]
-    cursor.execute("SELECT count(*) FROM Message WHERE sender_id == ?", (userId,))
-    messageCount = cursor.fetchall()[0][0]
-    cursor.execute("SELECT * FROM Flag WHERE reportedUser_id == ?", (userId,))
-    flagged = cursor.fetchall()
-    flags = []
-    for flag in flagged:
-      cursor.execute("SELECT message FROM Message WHERE message_id == ?", (flag[2],))
-      message = cursor.fetchall()[0][0]
-      cursor.execute("SELECT name FROM User WHERE user_id == ?", (flag[3],))      
-      reporterName = cursor.fetchall()[0][0]
-      flags.append((message, flag[4], reporterName, flag[3]))
-    print(flagged)
-    print(flags)
-                   
-    return (userId, messageCount, flags)
+  def getUserDetails(self, user):
+    """
+    Gets the userId, message count, and reports for a specific user.
+
+    Args:
+      user (string): the username of the user who's info should be fetched.
+
+    Returns:
+      (int, int, list of (string, string, string, int)): The details of the user, corresponding to
+                                                        (user id, message count, list of (reported message, report reason, reporter name, reporter id).
+    """
+    try:
+      connection = sqlite3.connect("file:photon.db?mode=ro", uri=True)
+      cursor = connection.cursor()
+      cursor.execute("SELECT user_id FROM User WHERE name == ?", (user,))
+      userId = cursor.fetchall()[0][0]
+      cursor.execute("SELECT count(*) FROM Message WHERE sender_id == ?", (userId,))
+      messageCount = cursor.fetchall()[0][0]
+      cursor.execute("SELECT * FROM Flag WHERE reportedUser_id == ?", (userId,))
+      flagged = cursor.fetchall()
+      flags = []
+      for flag in flagged:
+        cursor.execute("SELECT message FROM Message WHERE message_id == ?", (flag[2],))
+        message = cursor.fetchall()[0][0]
+        cursor.execute("SELECT name FROM User WHERE user_id == ?", (flag[3],))      
+        reporterName = cursor.fetchall()[0][0]
+        flags.append((message, flag[4], reporterName, flag[3]))
+                     
+      return (userId, messageCount, flags)
+    except Exception:
+      ReportError()
 
   
-  def AddUser(self, username, password):
-    semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
+  def addUser(self, username, password):
+    """
+    Creates a new user entry in the database.
+
+    Args:
+      username (string): the username of the account to create.
+      password (string): the password of the account to create - this should be hashed.
+    """
+    semaphore = Semaphore(value=0) # Create a semaphore to be used to signal once the database write has been completed
     self.writeQueue.enQueue(("INSERT into User(name, password) values (?, ?)", (username, password), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
-  def AddMessage(self, message):
-    global Messages
+  def addMessage(self, message):
+    """
+    Creates a new message entry in the database.
+
+    Args:
+      message (Message): The instance of message class containing the information that needs to be written.
+    """
+    global _messages
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
-    Messages.append(message)
+    _messages.append(message)
     self.writeQueue.enQueue(("INSERT into Message(sender_id, message, timeSent, recipient_id, colour) values (?,?,?,?,?)", (str(message.senderId), message.contents, message.timeSent, message.recipientId, message.colour), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 
 class Client:
+  """
+  Represents one client that is connected to the server. A new instance is made for each connection, each client only interacts with their corresponding thread.
+
+  Properties:
+    socket (socket.socket): The websocket that this client is connected through.
+    address (string): The IP of the connected client.
+    id (int): the id of the connected client (not constant between sessions).
+    thread (threading.thread): The asyncronous listener thread for this client.
+    username (string): The username of the user.
+    userid (int): The id of the user account (constant between sessions).
+    admin (bool): Denotes whether the user account is admin.
+  """
   def __init__(self, clientSocket, clientAddress):
+    """
+    Initialises the connection process, starts asynchronous listener thread and handles login handshake and account creation
+
+    Args:
+      clientSocket (socket.socket): the websocket that the connection is handled over.
+      clientAddress (string, int): The IP and id of the connected client.
+
+    ToDo:
+      Break this up!
+    """
     try:
-      global Messages
-      global Database
-      global Clients
+      global _messages, _database, _clients
       self.socket = clientSocket
       self.address = clientAddress[0]
       self.id = clientAddress[1]
@@ -148,7 +246,7 @@ class Client:
       self.username = "UNKNOWN"
       self.userid = ""
       self.admin = False
-      Clients.append(self)
+      _clients.append(self)
 
       print(f"Received a connection from {self.address}, id {self.id}")
 
@@ -159,27 +257,27 @@ class Client:
 
         if loginRequestPacket.type == "CREATEUSER":
 
-          usernameExists = Database.UserExists(loginRequestPacket.username)
+          usernameExists = _database.userExists(loginRequestPacket.username)
 
           if usernameExists:
             userRegistered = RegisterResponsePacket(False, "A user with that name already exists")
 
           else:
-            Database.AddUser(loginRequestPacket.username, loginRequestPacket.password)
+            _database.addUser(loginRequestPacket.username, loginRequestPacket.password)
             userRegistered = RegisterResponsePacket(True)
 
           self.socket.send(encode(userRegistered))
         
         elif loginRequestPacket.type == "LOGINREQUEST":
           err = "Incorrect username or password"
-          for client in Clients:
+          for client in _clients:
             if client.username == loginRequestPacket.username:
               valid = False
               err = "That user is already logged in"
               break
             
           else:              
-            ret = Database.QueryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
+            ret = _database.queryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
             valid = ret[0]
             
           if not valid:
@@ -201,7 +299,7 @@ class Client:
       # Get as many previous messages as possible that will fit into the max transmision size
       messagesToSend = []
       newMessagesToSend = []
-      for message in reversed(Messages): # reversed as we want the latest messages
+      for message in reversed(_messages): # reversed as we want the latest messages
         if message.recipientId == 1 or message.senderId == self.userid or message.recipientId == self.userid:
           newMessagesToSend.append(message)
           if len(encode(newMessagesToSend)) >= MAXTRANSMISSIONSIZE - 200: # We need a buffer of ~200 as when we construct the class the encoded size increases
@@ -215,29 +313,29 @@ class Client:
       
       newMessage = generateJoinLeaveMessage("joined", self.username)
       announceUserPacket = MessagePacket(newMessage) # Client has joined message
-      Database.AddMessage(newMessage)
-      SendToClients(announceUserPacket)
+      _database.addMessage(newMessage)
+      sendToClients(announceUserPacket)
 
       self.listenerThread = Thread(target=self.ListenForPackets) # Start thread to listen for packets from client
       self.listenerThread.start()
 
-      SendOnlineUsersPacket() # Tell clients a new user has joined
+      sendOnlineUsersPacket() # Tell clients a new user has joined
 
     except ConnectionResetError: # Lost connection with client
       print(f"Lost connection with: {self.address}, id {self.id}; closing connection")
       
       self.socket.close() # Close socket
-      for i in range(0, len(Clients)):
-        if Clients[i].id == self.id:
-          del Clients[i] # Delete class instance
+      for i in range(0, len(_clients)):
+        if _clients[i].id == self.id:
+          del _clients[i] # Delete class instance
           break
 
       if self.username != "UNKNOWN":
         newMessage = generateJoinLeaveMessage("left", self.username)
         announceUserPacket = MessagePacket(newMessage)
-        Database.AddMessage(newMessage)
-        SendToClients(announceUserPacket)
-        SendOnlineUsersPacket() # Tell clients a user has left
+        _database.addMessage(newMessage)
+        sendToClients(announceUserPacket)
+        sendOnlineUsersPacket() # Tell clients a user has left
           
       return # Return from thread
     except Exception:
@@ -245,15 +343,21 @@ class Client:
 
 
   def ListenForPackets(self):
+    """
+    Listens for all communication from client. Should be called asyncronously in it's own thread.
+
+    ToDo:
+    Break this up?
+    """
     try:
-      global Messages, Clients, Database
+      global _messages, _clients, _database
       while True:
         
         packet = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for message from client
         if packet.type == "MESSAGE":
           packet.message.timeSent = GetDateTime() # Update the message with the time it was received
-          Database.AddMessage(packet.message)
-          SendToClients(packet)
+          _database.addMessage(packet.message)
+          sendToClients(packet)
 
         elif packet.type == "COMMAND":
           command = packet.command
@@ -279,7 +383,7 @@ class Client:
                         "Formats can be combined and symbols can be escaped with '\\'",
                         ("bold", "*example*", "\*example*"),
                         ("italic", "_example_", "\_example_"),
-                        ("strikethrough", "~example~", "\~example"),
+                        ("strikethrough", "~example~", "\~example~"),
                         ("underline", "!example!", "\!example!")
                         ]
           
@@ -290,14 +394,14 @@ class Client:
           elif command == "whisper":
             targetName = args[0]
             del args[0]
-            for client in Clients:
+            for client in _clients:
               if client.username == targetName:
                 targetClient = client
                 success = True
                 message = "_ (Whisper) " + " ".join(args) + "_"
                 response = formatUsername(self.username) + message
                 newMessage = Message(self.userid, self.username, message, GetDateTime(), targetClient.userid, INFO)
-                Database.AddMessage(newMessage)
+                _database.addMessage(newMessage)
                 break
             else:
               err = f"Could not find user with name {targetName}"
@@ -311,11 +415,11 @@ class Client:
             targetClient.socket.send(encode(response))
 
         elif packet.type == "REQUESTUSERLIST":
-          userlist = Database.ListUsers()
+          userlist = _database.listUsers()
           self.socket.send(encode(UserListPacket(userlist)))
 
         elif packet.type == "REQUESTUSERINFO":
-          userinfo = Database.GetUserDetails(packet.user)
+          userinfo = _database.getUserDetails(packet.user)
           userInfoPacket = UserInfoPacket(userinfo[0], userinfo[1], userinfo[2])
           self.socket.send(encode(userInfoPacket))
 
@@ -326,16 +430,16 @@ class Client:
       print(f"Lost connection with: {self.address}, id {self.id}; closing connection")
       
       self.socket.close() # Close socket
-      for i in range(0, len(Clients)):
-        if Clients[i].id == self.id:
-          del Clients[i] # Delete class instance
+      for i in range(0, len(_clients)):
+        if _clients[i].id == self.id:
+          del _clients[i] # Delete class instance
           break
 
       newMessage = generateJoinLeaveMessage("left", self.username)
       announceUserPacket = MessagePacket(newMessage)
-      Database.AddMessage(newMessage)
-      SendToClients(announceUserPacket)
-      SendOnlineUsersPacket() # Tell clients a user has left
+      _database.AddMessage(newMessage)
+      sendToClients(announceUserPacket)
+      sendOnlineUsersPacket() # Tell clients a user has left
       
     except Exception:
       ReportError()
@@ -344,10 +448,16 @@ class Client:
 
 # Functions
 
-def SendToClients(packet):
+def sendToClients(packet):
+  """
+  Sends a packet to every connected client.
+
+  Args:
+    packet (packets.packet): The packet instance to send to the clients.
+  """
   try:
-    global Clients
-    for client in Clients:
+    global _clients
+    for client in _clients:
       client.socket.send(encode(packet))    
   except ConnectionResetError: # Client has lost connection
     pass    
@@ -355,25 +465,32 @@ def SendToClients(packet):
     ReportError()
 
 
-def SendOnlineUsersPacket():
+def sendOnlineUsersPacket():
+  """
+  Constructs and sends a packet containing all users that are online.
+  """
   try:
-    global Clients
+    global _clients
     users = []
-    for client in Clients:
+    for client in _clients:
       users.append(client.username)
     users = StringListMergeSort(users)
     onlineUsersPacket = OnlineUsersPacket(users)
-    SendToClients(onlineUsersPacket)
+    sendToClients(onlineUsersPacket)
   except Exception:
     ReportError()
 
 
 def __main__():
+  """
+  The main body of the program; it all starts here.
+  Loads database, then listens for connections and assigns them new threads as they come in.
+  """
   try:
     print("Loading Database...")
-    global Database
-    Database = DataBase()  
-    Database.LoadMessages()
+    global _database
+    _database = Database()  
+    _database.loadMessages()
     # Create a socket object
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
@@ -389,8 +506,6 @@ def __main__():
     print("Listening for connections...")
      
     while True:
-      global Clients
-      global ClientCount
       # Wait for connections
       clientSocket, clientAddress = serverSocket.accept()
       newClient = Client(clientSocket, clientAddress)
