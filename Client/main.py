@@ -41,12 +41,34 @@ COMMANDCHAR = "/"
 # Classes
 
 class MainWindow(QMainWindow):
+  """
+  GUI Class for main window. Inherits QMainWindow.
+
+  Elements:
+    centralWidget (QWidget): Main area containg window elements.
+    adminSettinsButton (QPushButton): Button to open admin settings.
+    messageInput (QLineEdit): Input area for sending messages.
+    messageInputButton (QPushButton): Send button for messages.
+    messageScrollArea (QScrollArea): Window section containing message elements.
+    messageWidget (QWidget): Widget to contain message elements.
+    userCountLabel (QLabel): Displays count of online users.
+    userListBox (QTextEdit): Contains all online users.
+    usernameLabel (QLabel): Displays username.
+
+  Properties:
+    writeSignal (QSignal): Signal to trigger message creation.
+    usersChangedSignal (QSignal): Signal to update online users.
+
+  ToDo:
+    Seperate this class out!
+  """
 
   # Signals for updating the GUI
   writeSignal = pyqtSignal(Message)
   usersChangedSignal = pyqtSignal(list)
 
   def __init__(self, *args):
+    """ Initialises the UI and connects all signals and button clicks. """
     try:
       super().__init__(*args)
       loadUi("mainWindow.ui", self)
@@ -62,6 +84,12 @@ class MainWindow(QMainWindow):
 
 
   def setUsername(self, username):
+    """
+    Sets the username label text.
+
+    Args:
+      username (string): The username to set to.
+    """
     try:
       self.usernameLabel.setText(f"Logged in as {username}")
     except Exception:
@@ -69,12 +97,14 @@ class MainWindow(QMainWindow):
 
 
   def postLogin(self):
+    """ Setup for after login is completed. """
     if not Admin:
         self.adminSettingsButton.hide()
     else:
         self.adminSettingsButton.clicked.connect(self.openAdminSettings)
         
   def openAdminSettings(self):
+    """ Opens the admin settings UI. """
     try:
       self.adminSettings = AdminSettingsWindow(self)
       self.adminSettings.show()
@@ -83,6 +113,7 @@ class MainWindow(QMainWindow):
   
 
   def closeEvent(self, event):
+    """ When main window closed, tidy up loose ends and exit. """
     try:
       # Not using onProgramExit() as it caused the program to hang when the UI is created
       global ServerSocket
@@ -94,6 +125,12 @@ class MainWindow(QMainWindow):
 
 
   def WriteLine(self, message):
+    """
+    Formats message, creates a new element for it and displays it properly.
+
+    Args:
+      message (Message): The message to display
+    """
     rawMessage = message.contents
     message.contents = formatTextForDisplay(message.contents, message.colour)
     #message.timeSent = formatDateTime(message.timeSent)
@@ -115,6 +152,12 @@ class MainWindow(QMainWindow):
 
     
   def UpdateConnectedUsers(self, userList):
+    """
+    Update connected users GUI elements.
+
+    Args:
+      userList (list of string): List of online users.
+    """
     userCount = len(userList)
     self.userCountLabel.setText(f"Users Online: {userCount}")
     
@@ -124,6 +167,7 @@ class MainWindow(QMainWindow):
 
 
   def onSendClick(self):
+    """ When the send button is pressed, take input, parse it and then send it. """
     try:
       text = self.messageInput.text()
       if not text.isspace() and text != "":
@@ -136,7 +180,8 @@ class MainWindow(QMainWindow):
       ReportError()
 
 
-  def resizeEvent(self, event): # Override the window resize event
+  def resizeEvent(self, event): 
+    """ Overrides the window resize event. Updates widget sizes. """
     width = self.messageScrollArea.width() - 10
     messageWidgets = (self.messageLayout.itemAt(i) for i in range(self.messageLayout.count())) # Get a list of widgets in layout
 
@@ -145,12 +190,14 @@ class MainWindow(QMainWindow):
 
 
 class MessageWidget(QWidget):
+  """ Gui Class for each message. """
   def __init__(self, parent=None):
       super().__init__(parent)
       loadUi("message.ui", self)
       self.messageOptionBtn.clicked.connect(lambda: self.openMessageOptions())
 
   def openMessageOptions(self):
+    """ Opens UI for managing messages. """
     try:
       self.messageOptions = MessageOptions(self, timestamp=self.timeLabel.text(), user=self.usernameLabel.text(), message=self.messageLabel.text())
       self.messageOptions.show()
@@ -158,6 +205,14 @@ class MessageWidget(QWidget):
       ReportError()
 
 class MessageOptions(QDialog):
+  """ 
+  GUI Class for managing messages
+
+  Args:
+    timestamp (string): Time that the message was sent.
+    user (string): Username of user who sent the message.
+    message (string): The contents of the message being managed.
+  """
    def __init__(self, *args, timestamp, user, message):
       try:
         super().__init__(*args)
@@ -173,6 +228,7 @@ class MessageOptions(QDialog):
 
 
 class AdminSettingsWindow(QDialog):      
+  """ GUI Class for the admin window. """
   def __init__(self, *args):
       super().__init__(*args)
       loadUi("adminSettings.ui", self)
@@ -181,14 +237,29 @@ class AdminSettingsWindow(QDialog):
       ServerSocket.send(encode(requestUserListPacket))
 
   def UserListReceived(self, userList):
+    """ 
+    Populates the userList dropdown.
+
+    Args:
+      userList (list of string): The list of users. 
+    """
     for user in userList:
       self.userListComboBox.addItem(user[1])
 
   def ComboBoxUpdated(self):
+    """ Event for when a new user is selected from the combobox. Fetches information about that user. """
     requestUserInfoPacket = RequestUserInfoPacket(self.userListComboBox.currentText())
     ServerSocket.send(encode(requestUserInfoPacket))
 
   def UpdateUserInfo(self, userId, messageCount, flags):
+    """
+    Updates the user specific info sections.
+
+    Args:
+      userId (int): The id of the selected user.
+      messageCount (int): The amount of messages sent by that user.
+      flags  (list of (string, string, string, int)): The report details of that user. Corresponding to list of (reported message, report reason, reporter name, reporter id)
+    """
     self.userIdLabel.setText(str(userId))
     self.messageCountLabel.setText(str(messageCount))
     self.reportCountLabel.setText(str(len(flags)))
@@ -207,6 +278,7 @@ class AdminSettingsWindow(QDialog):
 
 
 class LoginWindow(QDialog):
+  """ GUI Class for login window """
   def __init__(self, *args):
     try:
       super().__init__(*args)
@@ -219,6 +291,7 @@ class LoginWindow(QDialog):
 
 
   def openRegisterWindow(self):
+    """ Opens register window GUI """
     try:
       registerGui = RegisterWindow()
       registerGui.exec_()
@@ -227,6 +300,7 @@ class LoginWindow(QDialog):
 
 
   def onLoginClick(self):
+    """ Called on login button click. Basic input validation. """
     try:
       global Username
       username = self.usernameInput.text()
@@ -247,6 +321,13 @@ class LoginWindow(QDialog):
 
 
   def Login(self, username, password):
+    """
+    Attempts to login user to server.
+
+    Args:
+      username (string): Username to login with.
+      password (string): Password to login with, not yet hashed.
+    """
     try:
       global ServerSocket, Username, UserId, Admin
       password = HashString(password)
@@ -272,6 +353,7 @@ class LoginWindow(QDialog):
 
 
 class RegisterWindow(QDialog):
+  """ GUI Class for register window """
   def __init__(self, *args):
     try:
       super().__init__(*args)
@@ -281,6 +363,7 @@ class RegisterWindow(QDialog):
       ReportError()
 
   def validateInputs(self):
+    """ Called on register button click. Basic input validation. """
     try:
       username = self.usernameInput.text()
       password1 = self.passwordInput1.text()
@@ -300,6 +383,13 @@ class RegisterWindow(QDialog):
       ReportError()
 
   def register(self, username, password):
+     """
+    Attempts to register user with server.
+    
+    Args:
+      username (string): Username to register.
+      password (string): Password to register, not yet hashed.
+    """
     try:
       password = HashString(password)
       registerPacket = RegisterPacket(username, password)

@@ -55,7 +55,7 @@ class Database:
   def dbWriter(self): 
     """
     Writes all SQL statements in the queue sequentially as writes to the database must be done one at a time.
-    Should be run asynchronously.]
+    Should be run asynchronously.
     """
     try:
       while True:
@@ -161,8 +161,7 @@ class Database:
       user (string): the username of the user who's info should be fetched.
 
     Returns:
-      (int, int, list of (string, string, string, int)): The details of the user, corresponding to
-                                                        (user id, message count, list of (reported message, report reason, reporter name, reporter id).
+      (int, int, list of (string, string, string, int)): The details of the user, corresponding to (user id, message count, list of (reported message, report reason, reporter name, reporter id).
     """
     try:
       connection = sqlite3.connect("file:photon.db?mode=ro", uri=True)
@@ -437,7 +436,7 @@ class Client:
 
       newMessage = generateJoinLeaveMessage("left", self.username)
       announceUserPacket = MessagePacket(newMessage)
-      _database.AddMessage(newMessage)
+      _database.addMessage(newMessage)
       sendToClients(announceUserPacket)
       sendOnlineUsersPacket() # Tell clients a user has left
       
