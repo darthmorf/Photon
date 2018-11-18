@@ -75,6 +75,7 @@ class Message():
     self.timeSent = timeSent
     self.recipientId = recipientId
     self.colour = colour
+    self.messageId = messageId
 
 
 def HashString(string): 

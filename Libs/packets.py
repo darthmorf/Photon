@@ -164,3 +164,18 @@ class CommandResponsePacket(Packet):
     self.err = err
     self.response = response
     self.timeSent = timeSent
+
+class ReportPacket(Packet):
+  """
+  Tells the server to flag a message.
+
+  Args:
+    messageId (int): The id of the reported message.
+    reporterId (int): The id of the user who reported the message.
+    reportReason (string): The reason that the message was flagged.
+  """
+  def __init__(self, messageId, reporterId, reportReason):
+    Packet.__init__(self, "REPORTPACKET")
+    self.messageId = messageId
+    self.reporterId = reporterId
+    self.reportReason = reportReason

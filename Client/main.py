@@ -220,12 +220,35 @@ class MessageOptions(QDialog):
     try:
       super().__init__(*args)
       loadUi("messageOptions.ui", self)
+      self.reportButton.clicked.connect(lambda: self.sendReport())
+      self.message = message
       self.timeLabel.setText(message.timeSent)
       self.usernameLabel.setText(message.senderName)
       self.editMessage.setText(inverseFormatTextForDisplay(message.contents)[0])
+      
+      if self.message.senderId == 1: # Server message
+        self.reportButton.setEnabled(False)
+        self.reportReason.setEnabled(False)
 
     except Exception:
       ReportError()
+
+  def sendReport(self):
+    reason = self.reportReason.text()
+    if len(reason) < 1:
+      errNotifier = QMessageBox()
+      errNotifier.setIcon(QMessageBox.Critical)
+      errNotifier.setText("You must supply a reason when reporting a message.")
+      errNotifier.setWindowTitle("Report Error")
+      errNotifier.exec_()
+    else:
+      reportPacket = ReportPacket(self.message.messageId, UserId, reason)
+      ServerSocket.send(encode(reportPacket))
+      successNotifier = QMessageBox()
+      successNotifier.setIcon(QMessageBox.Information)
+      successNotifier.setText("Successfully reported message.")
+      successNotifier.setWindowTitle("Report Result")
+      successNotifier.exec_()
 
 
 class AdminSettingsWindow(QDialog):      

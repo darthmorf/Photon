@@ -67,7 +67,7 @@ class Database:
           cursor.execute(command[0], command[1]) # Execute SQL command
           connection.commit() # Save changes to DB
           cursor.execute("SELECT last_insert_rowid()")
-          if "Message" in command[0]:
+          if len(command) == 4:
             _messages[command[3]].messageId = cursor.fetchall()[0][0]
           command[2].release()  # Release semaphore flag so the client thread can continue
           connection.close()
@@ -117,7 +117,7 @@ class Database:
         for message in messages:
           self.roCursor.execute("SELECT name FROM User WHERE user_id == ?", (str(message[1]),))
           username = self.roCursor.fetchall()[0][0]
-          constructedMessage = Message(message[1], username, message[2], message[3], message[4], message[5])
+          constructedMessage = Message(messageId=message[0], senderId=message[1], senderName=username, contents=message[2], timeSent=message[3], recipientId=message[4], colour=message[5])
           _messages.append(constructedMessage)
     except Exception:
         ReportError()
@@ -220,6 +220,14 @@ class Database:
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
     return _messages[messageIndex] # Message object will have been updated with it's ID by the DB writer
 
+  def addReport(self, messageId, reporterId, reportReason):
+    connection = sqlite3.connect("file:photon.db?mode=ro", uri=True)
+    cursor = connection.cursor()
+    cursor.execute("SELECT sender_id FROM Message where message_id == ?", (messageId,))
+    reportedUserId = cursor.fetchall()[0][0]
+    semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
+    self.writeQueue.enQueue(("INSERT into Flag(reportedUser_id, message_id, reporter_id, reportReason) values (?,?,?,?)", (reportedUserId, messageId, reporterId, reportReason), semaphore))
+    semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
 class Client:
   """
@@ -430,6 +438,9 @@ class Client:
           userinfo = _database.getUserDetails(packet.user)
           userInfoPacket = UserInfoPacket(userinfo[0], userinfo[1], userinfo[2])
           self.socket.send(encode(userInfoPacket))
+
+        elif packet.type == "REPORTPACKET":
+          _database.addReport(packet.messageId, packet.reporterId, packet.reportReason)
 
         else:
           print(f"Unknown packet received: {packet.type}")
