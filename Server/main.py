@@ -58,6 +58,7 @@ class Database:
     Should be run asynchronously.
     """
     try:
+      global _messages
       while True:
         if not self.writeQueue.isEmpty():
           connection = sqlite3.connect("photon.db")
@@ -65,6 +66,9 @@ class Database:
           command = self.writeQueue.deQueue()
           cursor.execute(command[0], command[1]) # Execute SQL command
           connection.commit() # Save changes to DB
+          cursor.execute("SELECT last_insert_rowid()")
+          if "Message" in command[0]:
+            _messages[command[3]].messageId = cursor.fetchall()[0][0]
           command[2].release()  # Release semaphore flag so the client thread can continue
           connection.close()
     except Exception:
@@ -204,12 +208,17 @@ class Database:
 
     Args:
       message (Message): The instance of message class containing the information that needs to be written.
+
+    Returns:
+      
     """
     global _messages
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
     _messages.append(message)
-    self.writeQueue.enQueue(("INSERT into Message(sender_id, message, timeSent, recipient_id, colour) values (?,?,?,?,?)", (str(message.senderId), message.contents, message.timeSent, message.recipientId, message.colour), semaphore))
+    messageIndex = len(_messages) - 1
+    self.writeQueue.enQueue(("INSERT into Message(sender_id, message, timeSent, recipient_id, colour) values (?,?,?,?,?)", (str(message.senderId), message.contents, message.timeSent, message.recipientId, message.colour), semaphore, messageIndex))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
+    return _messages[messageIndex] # Message object will have been updated with it's ID by the DB writer
 
 
 class Client:
@@ -311,8 +320,8 @@ class Client:
 
       
       newMessage = generateJoinLeaveMessage("joined", self.username)
+      newMessage = _database.addMessage(newMessage)
       announceUserPacket = MessagePacket(newMessage) # Client has joined message
-      _database.addMessage(newMessage)
       sendToClients(announceUserPacket)
 
       self.listenerThread = Thread(target=self.ListenForPackets) # Start thread to listen for packets from client
@@ -331,8 +340,8 @@ class Client:
 
       if self.username != "UNKNOWN":
         newMessage = generateJoinLeaveMessage("left", self.username)
+        newMessage = _database.addMessage(newMessage)
         announceUserPacket = MessagePacket(newMessage)
-        _database.addMessage(newMessage)
         sendToClients(announceUserPacket)
         sendOnlineUsersPacket() # Tell clients a user has left
           
@@ -355,7 +364,7 @@ class Client:
         packet = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for message from client
         if packet.type == "MESSAGE":
           packet.message.timeSent = GetDateTime() # Update the message with the time it was received
-          _database.addMessage(packet.message)
+          packet.message = _database.addMessage(packet.message)
           sendToClients(packet)
 
         elif packet.type == "COMMAND":
@@ -400,7 +409,7 @@ class Client:
                 message = "_ (Whisper) " + " ".join(args) + "_"
                 response = formatUsername(self.username) + message
                 newMessage = Message(self.userid, self.username, message, GetDateTime(), targetClient.userid, INFO)
-                _database.addMessage(newMessage)
+                newMessage = _database.addMessage(newMessage)
                 break
             else:
               err = f"Could not find user with name {targetName}"
@@ -435,8 +444,8 @@ class Client:
           break
 
       newMessage = generateJoinLeaveMessage("left", self.username)
+      newMessage = _database.addMessage(newMessage)
       announceUserPacket = MessagePacket(newMessage)
-      _database.addMessage(newMessage)
       sendToClients(announceUserPacket)
       sendOnlineUsersPacket() # Tell clients a user has left
       

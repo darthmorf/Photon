@@ -66,8 +66,9 @@ class Message():
     timeSent (string, optional): The time that the message was sent.
     recipientId (int, optional): The user id of the user that sent the message.
     colour (string, optional): The colour to display the message as.
+    messageId (int, optional): The id of the message.
   """
-  def __init__(self, senderId="", senderName="", contents="", timeSent="", recipientId=1, colour="#000000"):
+  def __init__(self, senderId="", senderName="", contents="", timeSent="", recipientId=1, colour="#000000", messageId=""):
     self.senderId = senderId
     self.senderName = senderName
     self.contents = contents
@@ -198,7 +199,7 @@ def StringListMergeSort(mergelist):
         mergelist[k] = righthalf[j] # If so, add to mergelist
         j += 1
         k += 1
-    return mergelist
+  return mergelist
 
 
 def ReportError():
