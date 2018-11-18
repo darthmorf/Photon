@@ -225,8 +225,15 @@ class MessageOptions(QDialog):
       self.timeLabel.setText(message.timeSent)
       self.usernameLabel.setText(message.senderName)
       self.editMessage.setText(inverseFormatTextForDisplay(message.contents)[0])
+
+      # Users can only edit and delete their own messages. Admins can delete any message. You cannot report your own or a server message. Local messages cannot be modified.
+      if self.message.senderId != UserId or self.message.senderId == "":
+        self.editMessage.setEnabled(False)
+        self.editButton.setEnabled(False)
+        if not Admin or self.message.senderId == "":
+          self.deleteButton.setEnabled(False)
       
-      if self.message.senderId == 1: # Server message
+      if self.message.senderId == 1 or self.message.senderId == UserId or self.message.senderId == "":
         self.reportButton.setEnabled(False)
         self.reportReason.setEnabled(False)
 
