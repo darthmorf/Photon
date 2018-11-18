@@ -135,12 +135,9 @@ class MainWindow(QMainWindow):
     message.contents = formatTextForDisplay(message.contents, message.colour)
     #message.timeSent = formatDateTime(message.timeSent)
     message.senderName = formatUsername(message.senderName)
-    rawMessage = message
     try:
-      newWidget = MessageWidget() # Create a new message widget
-      newWidget.timeLabel.setText(message.timeSent)
-      newWidget.usernameLabel.setText(message.senderName)
-      newWidget.messageLabel.setText(message.contents)
+      newWidget = MessageWidget(message=message) # Create a new message widget
+      newWidget.updateText()
       rowCount = self.messageLayout.rowCount() # Get the amount of rows in the message container
       self.messageLayout.setWidget(rowCount, QFormLayout.LabelRole, newWidget) # Append the new message widget to the end of the container   
       newWidget.setFixedWidth(self.messageScrollArea.width() - 10) # Set widget width to match the parent width
@@ -191,18 +188,24 @@ class MainWindow(QMainWindow):
 
 class MessageWidget(QWidget):
   """ Gui Class for each message. """
-  def __init__(self, parent=None):
+  def __init__(self, parent=None, message=""):
       super().__init__(parent)
       loadUi("message.ui", self)
       self.messageOptionBtn.clicked.connect(lambda: self.openMessageOptions())
+      self.message = message
 
   def openMessageOptions(self):
     """ Opens UI for managing messages. """
     try:
-      self.messageOptions = MessageOptions(self, timestamp=self.timeLabel.text(), user=self.usernameLabel.text(), message=self.messageLabel.text())
+      self.messageOptions = MessageOptions(self, message=self.message)
       self.messageOptions.show()
     except Exception:
       ReportError()
+
+  def updateText(self):
+      self.timeLabel.setText(self.message.timeSent)
+      self.usernameLabel.setText(self.message.senderName)
+      self.messageLabel.setText(self.message.contents)
 
 class MessageOptions(QDialog):
   """ 
@@ -213,18 +216,16 @@ class MessageOptions(QDialog):
     user (string): Username of user who sent the message.
     message (string): The contents of the message being managed.
   """
-   def __init__(self, *args, timestamp, user, message):
-      try:
-        super().__init__(*args)
-        loadUi("messageOptions.ui", self)
-        self.timeLabel.setText(timestamp)
-        self.usernameLabel.setText(user)
-        resp = inverseFormatTextForDisplay(message)
-        self.editMessage.setText(resp[0])
-        self.messageColour = resp[1]
+  def __init__(self, *args, message=""):
+    try:
+      super().__init__(*args)
+      loadUi("messageOptions.ui", self)
+      self.timeLabel.setText(message.timeSent)
+      self.usernameLabel.setText(message.senderName)
+      self.editMessage.setText(inverseFormatTextForDisplay(message.contents)[0])
 
-      except Exception:
-        ReportError()
+    except Exception:
+      ReportError()
 
 
 class AdminSettingsWindow(QDialog):      
@@ -383,7 +384,7 @@ class RegisterWindow(QDialog):
       ReportError()
 
   def register(self, username, password):
-     """
+    """
     Attempts to register user with server.
     
     Args:
