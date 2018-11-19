@@ -456,7 +456,12 @@ class RegisterWindow(QDialog):
 
     
 # Functions
+"""
+Constructs a message object and sends it to the server.
 
+Args:
+  message (string): The message contents.
+"""
 def SendMessage(message):
   try:
       global ServerSocket, Username
@@ -468,7 +473,12 @@ def SendMessage(message):
   except Exception:
      ReportError()
 
+"""
+Formats a command string into arguments and sends it to the server.
 
+Args:
+  command (string): The raw command text before formatting.
+"""
 def ParseCommand(command):
   try:
     global ServerSocket
@@ -482,7 +492,13 @@ def ParseCommand(command):
   except Exception:
     ReportError()
     
+"""
+Ensures a message is in the correct format and then passes it to the GUI to display.
 
+Args:
+  message (string, optional): The string to convert to message object.
+  message (Message, optional): The message object to pass to the GUI.
+"""
 def printMessage(message):
   if type(message) is str:
     message = Message(contents=message)
