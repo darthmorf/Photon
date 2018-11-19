@@ -67,6 +67,7 @@ class MainWindow(QMainWindow):
   writeSignal = pyqtSignal(Message)
   usersChangedSignal = pyqtSignal(list)
   updateMessageSignal = pyqtSignal(int, str)
+  deleteMessageSignal = pyqtSignal(int)
 
   def __init__(self, *args):
     """ Initialises the UI and connects all signals and button clicks. """
@@ -79,6 +80,7 @@ class MainWindow(QMainWindow):
       self.writeSignal.connect(self.WriteLine) 
       self.usersChangedSignal.connect(self.UpdateConnectedUsers)
       self.updateMessageSignal.connect(self.updateMessageContents)
+      self.deleteMessageSignal.connect(self.deleteMessage)
       self.messageWidget.setLayout(self.messageLayout)
         
     except Exception:
@@ -193,6 +195,18 @@ class MainWindow(QMainWindow):
         layoutItem.widget().message.contents = contents
         layoutItem.widget().updateText()
 
+  def deleteMessage(self, messageId):
+    messageWidgets = (self.messageLayout.itemAt(i) for i in range(self.messageLayout.count())) # Get a list of widgets in layout
+    
+    for layoutItem in messageWidgets:
+      if layoutItem.widget().message.messageId == messageId:
+        layoutItem.widget().message.contents = "_message deleted_"
+        layoutItem.widget().message.senderId = 1
+        layoutItem.widget().message.senderName = "SERVER"
+        layoutItem.widget().message.colour = INFO
+        layoutItem.widget().updateText()
+
+
 
 class MessageWidget(QWidget):
   """ Gui Class for each message. """
@@ -230,6 +244,7 @@ class MessageOptions(QDialog):
       loadUi("messageOptions.ui", self)
       self.reportButton.clicked.connect(lambda: self.sendReport())
       self.editButton.clicked.connect(lambda: self.editMessageContents())
+      self.deleteButton.clicked.connect(lambda: self.deleteMessage())
       self.message = message
       self.timeLabel.setText(message.timeSent)
       self.usernameLabel.setText(formatUsername(message.senderName))
@@ -269,6 +284,21 @@ class MessageOptions(QDialog):
   def editMessageContents(self):
     editMessagePacket = EditMessagePacket(self.message.messageId, self.editMessage.text())
     ServerSocket.send(encode(editMessagePacket))
+    successNotifier = QMessageBox()
+    successNotifier.setIcon(QMessageBox.Information)
+    successNotifier.setText("Successfully edited message.")
+    successNotifier.setWindowTitle("Edit Result")
+    successNotifier.exec_()
+
+  def deleteMessage(self):
+    deleteMessagePacket = DeleteMessagePacket(self.message.messageId)
+    ServerSocket.send(encode(deleteMessagePacket))
+    successNotifier = QMessageBox()
+    successNotifier.setIcon(QMessageBox.Information)
+    successNotifier.setText("Successfully deleted message.")
+    successNotifier.setWindowTitle("Delete Result")
+    successNotifier.exec_()
+    self.close()
 
 
 class AdminSettingsWindow(QDialog):      
@@ -568,6 +598,9 @@ def ListenForPackets(server):
 
       elif packet.type == "EDITMESSAGE":
         MainGui.updateMessageSignal.emit(packet.messageId, packet.newContents)
+
+      elif packet.type == "DELETEMESSAGE":
+        MainGui.deleteMessageSignal.emit(packet.messageId)
 
       else:
           print(f"Unknown packet received: {packet.type}")

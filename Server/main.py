@@ -233,6 +233,11 @@ class Database:
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
     self.writeQueue.enQueue(("UPDATE Message SET contents=? WHERE message_id=?", (newContent, messageId), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
+
+  def deleteMessage(self, messageId):
+    semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
+    self.writeQueue.enQueue(("UPDATE Message SET contents=?,sender_id=?,colour=? WHERE message_id=?", ("_message deleted_", 1, INFO, messageId), semaphore))
+    semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
     
 class Client:
   """
@@ -454,9 +459,21 @@ class Client:
             if message.messageId == packet.messageId:
               _messages[i].contents = packet.newContents
               break
-            i+=1
-            
+            i+=1            
           sendToClients(packet) # Tell clients that the message has been edited.
+
+        elif packet.type == "DELETEMESSAGE":
+          _database.deleteMessage(packet.messageId)
+          i = 0
+          for message in _messages:
+            if message.messageId == packet.messageId:
+              _messages[i].contents = "_message deleted_"
+              _messages[i].senderId = 1
+              _messages[i].senderName = "SERVER"
+              _messages[i].colour = INFO
+              break
+            i+=1            
+          sendToClients(packet) # Tell clients that the message has been deleted.
 
         else:
           print(f"Unknown packet received: {packet.type}")
