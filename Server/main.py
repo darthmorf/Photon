@@ -178,7 +178,7 @@ class Database:
       flagged = cursor.fetchall()
       flags = []
       for flag in flagged:
-        cursor.execute("SELECT message FROM Message WHERE message_id == ?", (flag[2],))
+        cursor.execute("SELECT contents FROM Message WHERE message_id == ?", (flag[2],))
         message = cursor.fetchall()[0][0]
         cursor.execute("SELECT name FROM User WHERE user_id == ?", (flag[3],))      
         reporterName = cursor.fetchall()[0][0]
@@ -216,7 +216,7 @@ class Database:
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
     _messages.append(message)
     messageIndex = len(_messages) - 1
-    self.writeQueue.enQueue(("INSERT into Message(sender_id, message, timeSent, recipient_id, colour) values (?,?,?,?,?)", (str(message.senderId), message.contents, message.timeSent, message.recipientId, message.colour), semaphore, messageIndex))
+    self.writeQueue.enQueue(("INSERT into Message(sender_id, contents, timeSent, recipient_id, colour) values (?,?,?,?,?)", (str(message.senderId), message.contents, message.timeSent, message.recipientId, message.colour), semaphore, messageIndex))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
     return _messages[messageIndex] # Message object will have been updated with it's ID by the DB writer
 
@@ -231,7 +231,7 @@ class Database:
 
   def editMessage(self, messageId, newContent):
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
-    self.writeQueue.enQueue(("UPDATE Message SET message=? WHERE message_id=?", (newContent, messageId), semaphore))
+    self.writeQueue.enQueue(("UPDATE Message SET contents=? WHERE message_id=?", (newContent, messageId), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
     
 class Client:
