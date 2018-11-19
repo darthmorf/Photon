@@ -179,3 +179,14 @@ class ReportPacket(Packet):
     self.messageId = messageId
     self.reporterId = reporterId
     self.reportReason = reportReason
+
+class DeleteMessagePacket(Packet):
+  def __init__(self, messageId):
+    Packet.__init__(self, "DELETEMESSAGE")
+    self.messageId = messageId
+
+class EditMessagePacket(Packet):
+  def __init__(self, messageId, newContents):
+    Packet.__init__(self, "EDITMESSAGE")
+    self.messageId = messageId
+    self.newContents = newContents

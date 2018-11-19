@@ -229,6 +229,11 @@ class Database:
     self.writeQueue.enQueue(("INSERT into Flag(reportedUser_id, message_id, reporter_id, reportReason) values (?,?,?,?)", (reportedUserId, messageId, reporterId, reportReason), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
+  def editMessage(self, messageId, newContent):
+    semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
+    self.writeQueue.enQueue(("UPDATE Message SET message=? WHERE message_id=?", (newContent, messageId), semaphore))
+    semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
+    
 class Client:
   """
   Represents one client that is connected to the server. A new instance is made for each connection, each client only interacts with their corresponding thread.
@@ -441,6 +446,17 @@ class Client:
 
         elif packet.type == "REPORTPACKET":
           _database.addReport(packet.messageId, packet.reporterId, packet.reportReason)
+
+        elif packet.type == "EDITMESSAGE":
+          _database.editMessage(packet.messageId, packet.newContents)
+          i = 0
+          for message in _messages:
+            if message.messageId == packet.messageId:
+              _messages[i].contents = packet.newContents
+              break
+            i+=1
+            
+          sendToClients(packet) # Tell clients that the message has been edited.
 
         else:
           print(f"Unknown packet received: {packet.type}")

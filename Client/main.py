@@ -66,6 +66,7 @@ class MainWindow(QMainWindow):
   # Signals for updating the GUI
   writeSignal = pyqtSignal(Message)
   usersChangedSignal = pyqtSignal(list)
+  updateMessageSignal = pyqtSignal(int, str)
 
   def __init__(self, *args):
     """ Initialises the UI and connects all signals and button clicks. """
@@ -77,6 +78,7 @@ class MainWindow(QMainWindow):
       # Point the signals to the corresponding functions
       self.writeSignal.connect(self.WriteLine) 
       self.usersChangedSignal.connect(self.UpdateConnectedUsers)
+      self.updateMessageSignal.connect(self.updateMessageContents)
       self.messageWidget.setLayout(self.messageLayout)
         
     except Exception:
@@ -132,9 +134,6 @@ class MainWindow(QMainWindow):
       message (Message): The message to display
     """
     rawMessage = message.contents
-    message.contents = formatTextForDisplay(message.contents, message.colour)
-    #message.timeSent = formatDateTime(message.timeSent)
-    message.senderName = formatUsername(message.senderName)
     try:
       newWidget = MessageWidget(message=message) # Create a new message widget
       newWidget.updateText()
@@ -186,6 +185,15 @@ class MainWindow(QMainWindow):
       layoutItem.widget().setFixedWidth(width)
 
 
+  def updateMessageContents(self, messageId, contents):
+    messageWidgets = (self.messageLayout.itemAt(i) for i in range(self.messageLayout.count())) # Get a list of widgets in layout
+    
+    for layoutItem in messageWidgets:
+      if layoutItem.widget().message.messageId == messageId:
+        layoutItem.widget().message.contents = contents
+        layoutItem.widget().updateText()
+
+
 class MessageWidget(QWidget):
   """ Gui Class for each message. """
   def __init__(self, parent=None, message=""):
@@ -204,8 +212,8 @@ class MessageWidget(QWidget):
 
   def updateText(self):
       self.timeLabel.setText(self.message.timeSent)
-      self.usernameLabel.setText(self.message.senderName)
-      self.messageLabel.setText(self.message.contents)
+      self.usernameLabel.setText(formatUsername(self.message.senderName))
+      self.messageLabel.setText(formatTextForDisplay(self.message.contents, self.message.colour))
 
 class MessageOptions(QDialog):
   """ 
@@ -221,10 +229,11 @@ class MessageOptions(QDialog):
       super().__init__(*args)
       loadUi("messageOptions.ui", self)
       self.reportButton.clicked.connect(lambda: self.sendReport())
+      self.editButton.clicked.connect(lambda: self.editMessageContents())
       self.message = message
       self.timeLabel.setText(message.timeSent)
-      self.usernameLabel.setText(message.senderName)
-      self.editMessage.setText(inverseFormatTextForDisplay(message.contents)[0])
+      self.usernameLabel.setText(formatUsername(message.senderName))
+      self.editMessage.setText(message.contents)
 
       # Users can only edit and delete their own messages. Admins can delete any message. You cannot report your own or a server message. Local messages cannot be modified.
       if self.message.senderId != UserId or self.message.senderId == "":
@@ -256,6 +265,10 @@ class MessageOptions(QDialog):
       successNotifier.setText("Successfully reported message.")
       successNotifier.setWindowTitle("Report Result")
       successNotifier.exec_()
+
+  def editMessageContents(self):
+    editMessagePacket = EditMessagePacket(self.message.messageId, self.editMessage.text())
+    ServerSocket.send(encode(editMessagePacket))
 
 
 class AdminSettingsWindow(QDialog):      
@@ -537,6 +550,8 @@ def ListenForPackets(server):
       elif packet.type == "USERINFO":
         MainGui.adminSettings.UpdateUserInfo(packet.id, packet.messageCount, packet.flags)
 
+      elif packet.type == "EDITMESSAGE":
+        MainGui.updateMessageSignal.emit(packet.messageId, packet.newContents)
 
       else:
           print(f"Unknown packet received: {packet.type}")
