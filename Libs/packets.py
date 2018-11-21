@@ -125,12 +125,14 @@ class UserInfoPacket(Packet):
   Args:
     id (int): The id of the user
     messageCount (int): The number of messages sent by the user.
+    admin (bool): Whether the user is an admin.
     flags (list of (string, string, string, int): Contains info about reports for that user, corresponding to list of (reported message, report reason, reporter name, reporter id).
   """
-  def __init__(self, id, messageCount, flags):
+  def __init__(self, id, messageCount, admin, flags):
     Packet.__init__(self, "USERINFO")
     self.id = id
     self.messageCount = messageCount
+    self.admin = admin
     self.flags = flags
 
 class CommandPacket(Packet):

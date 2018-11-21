@@ -232,7 +232,7 @@ class Client:
 
         elif packet.type == "REQUESTUSERINFO":
           userinfo = _database.getUserDetails(packet.user)
-          userInfoPacket = UserInfoPacket(userinfo[0], userinfo[1], userinfo[2])
+          userInfoPacket = UserInfoPacket(userinfo[0], userinfo[1], userinfo[2], userinfo[3])
           self.socket.send(encode(userInfoPacket))
 
         elif packet.type == "REPORTPACKET":

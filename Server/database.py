@@ -139,19 +139,21 @@ class Database:
 
   def getUserDetails(self, user):
     """
-    Gets the userId, message count, and reports for a specific user.
+    Gets the userId, message count, admin and reports for a specific user.
 
     Args:
       user (string): the username of the user who's info should be fetched.
 
     Returns:
-      (int, int, list of (string, string, string, int)): The details of the user, corresponding to (user id, message count, list of (reported message, report reason, reporter name, reporter id).
+      (int, int, bool list of (string, string, string, int)): The details of the user, corresponding to (user id, message count, whether admin, list of (reported message, report reason, reporter name, reporter id).
     """
     try:
       connection = sqlite3.connect("file:photon.db?mode=ro", uri=True)
       cursor = connection.cursor()
-      cursor.execute("SELECT user_id FROM User WHERE name == ?", (user,))
-      userId = cursor.fetchall()[0][0]
+      cursor.execute("SELECT user_id, admin FROM User WHERE name == ?", (user,))
+      ret = cursor.fetchall()[0]
+      userId = ret[0]
+      admin = bool(ret[1])
       cursor.execute("SELECT count(*) FROM Message WHERE sender_id == ?", (userId,))
       messageCount = cursor.fetchall()[0][0]
       cursor.execute("SELECT * FROM Flag WHERE reportedUser_id == ?", (userId,))
@@ -164,7 +166,7 @@ class Database:
         reporterName = cursor.fetchall()[0][0]
         flags.append((message, flag[4], reporterName, flag[3]))
                      
-      return (userId, messageCount, flags)
+      return (userId, messageCount, admin, flags)
     except Exception:
       ReportError()
 

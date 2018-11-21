@@ -325,13 +325,14 @@ class AdminSettingsWindow(QDialog):
     requestUserInfoPacket = RequestUserInfoPacket(self.userListComboBox.currentText())
     ServerSocket.send(encode(requestUserInfoPacket))
 
-  def UpdateUserInfo(self, userId, messageCount, flags):
+  def UpdateUserInfo(self, userId, messageCount, admin, flags):
     """
     Updates the user specific info sections.
 
     Args:
       userId (int): The id of the selected user.
       messageCount (int): The amount of messages sent by that user.
+      admin (bool): Whether the user is admin.
       flags  (list of (string, string, string, int)): The report details of that user. Corresponding to list of (reported message, report reason, reporter name, reporter id)
     """
     self.userIdLabel.setText(str(userId))
@@ -341,6 +342,11 @@ class AdminSettingsWindow(QDialog):
     rowPosition = self.reportTable.rowCount()
     for row in range(0, rowPosition):
       self.reportTable.removeRow(1)
+
+    if admin:
+      self.toggleAdminStatus.setText("Demote from Admin")
+    else:      
+      self.toggleAdminStatus.setText("Promote to Admin")
 
     i = 1
     for flag in flags:
@@ -594,7 +600,7 @@ def ListenForPackets(server):
 
 
       elif packet.type == "USERINFO":
-        MainGui.adminSettings.UpdateUserInfo(packet.id, packet.messageCount, packet.flags)
+        MainGui.adminSettings.UpdateUserInfo(packet.id, packet.messageCount, packet.admin, packet.flags)
 
       elif packet.type == "EDITMESSAGE":
         MainGui.updateMessageSignal.emit(packet.messageId, packet.newContents)
