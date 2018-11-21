@@ -13,6 +13,7 @@ import re
 
 from PyQt5.QtCore import pyqtSlot, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QMessageBox, QWidget, QFormLayout, QScrollArea, QTableWidgetItem
+from PyQt5.QtGui import QColor
 from PyQt5.uic import loadUi
 
 # Load classes and functions from shared libs
@@ -216,6 +217,12 @@ class MessageWidget(QWidget):
       self.messageOptionBtn.clicked.connect(lambda: self.openMessageOptions())
       self.message = message
       self.setMouseTracking(1)
+      hoverColour = QColor("#f0f0f0")
+      self.hoverPalette = self.palette()
+      self.hoverPalette.setColor(self.backgroundRole(), hoverColour)
+      baseColour = QColor("#ffffff")
+      self.basePalette = self.palette()
+      self.basePalette.setColor(self.backgroundRole(), baseColour)
 
   def openMessageOptions(self):
     """ Opens UI for managing messages. """
@@ -230,9 +237,11 @@ class MessageWidget(QWidget):
       self.usernameLabel.setText(formatUsername(self.message.senderName))
       self.messageLabel.setText(formatTextForDisplay(self.message.contents, self.message.colour))
 
-  def mouseMoveEvent(self, event):
-    print(self.message)
-    pass
+  def enterEvent(self, event):
+    self.setPalette(self.hoverPalette)
+  
+  def leaveEvent(self, event):
+    self.setPalette(self.basePalette)
 
 class MessageOptions(QDialog):
   """ 
