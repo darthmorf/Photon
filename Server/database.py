@@ -169,7 +169,6 @@ class Database:
       return (userId, messageCount, admin, flags)
     except Exception:
       ReportError()
-
   
   def addUser(self, username, password):
     """
@@ -218,4 +217,12 @@ class Database:
   def deleteMessage(self, messageId):
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
     self.writeQueue.enQueue(("UPDATE Message SET contents=?,sender_id=?,colour=? WHERE message_id=?", ("_message deleted_", 1, INFO, messageId), semaphore))
+    semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
+
+  def setAdmin(self, admin, userId):
+    #admin = int(admin)
+    print(admin)
+    print(userId)
+    semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
+    self.writeQueue.enQueue(("UPDATE User SET admin=? WHERE user_id=?", (admin, userId), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete

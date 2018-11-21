@@ -307,8 +307,11 @@ class AdminSettingsWindow(QDialog):
       super().__init__(*args)
       loadUi("adminSettings.ui", self)
       self.userListComboBox.currentIndexChanged.connect(self.ComboBoxUpdated)
+      self.toggleAdminStatusBtn.clicked.connect(self.toggleAdminStatus)
       requestUserListPacket = Packet("REQUESTUSERLIST")
       ServerSocket.send(encode(requestUserListPacket))
+      self.selectedUserAdmin = None
+      self.selectedUserId = None
 
   def UserListReceived(self, userList):
     """ 
@@ -336,6 +339,7 @@ class AdminSettingsWindow(QDialog):
       flags  (list of (string, string, string, int)): The report details of that user. Corresponding to list of (reported message, report reason, reporter name, reporter id)
     """
     self.userIdLabel.setText(str(userId))
+    self.selectedUserId = str(userId)
     self.messageCountLabel.setText(str(messageCount))
     self.reportCountLabel.setText(str(len(flags)))
     
@@ -343,10 +347,12 @@ class AdminSettingsWindow(QDialog):
     for row in range(0, rowPosition):
       self.reportTable.removeRow(1)
 
+    self.selectedUserAdmin = admin
     if admin:
-      self.toggleAdminStatus.setText("Demote from Admin")
+      self.toggleAdminStatusBtn.setText("Demote from Admin")
     else:      
-      self.toggleAdminStatus.setText("Promote to Admin")
+      self.toggleAdminStatusBtn.setText("Promote to Admin")
+    self.toggleAdminStatusBtn.setEnabled(True)
 
     i = 1
     for flag in flags:
@@ -356,6 +362,10 @@ class AdminSettingsWindow(QDialog):
       self.reportTable.setItem(i, 2, QTableWidgetItem(f"{flag[2]} (ID: {flag[3]})"))
       i += 1
 
+  def toggleAdminStatus(self):
+    adminStatusPacket = SetAdminStatusPacket(not self.selectedUserAdmin, self.selectedUserId)
+    ServerSocket.send(encode(adminStatusPacket))
+    self.ComboBoxUpdated()
 
 class LoginWindow(QDialog):
   """ GUI Class for login window """

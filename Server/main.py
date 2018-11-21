@@ -261,6 +261,9 @@ class Client:
             i+=1            
           sendToClients(packet) # Tell clients that the message has been deleted.
 
+        elif packet.type == "SETADMINSTATUS":
+          _database.setAdmin(packet.admin, packet.userId)
+
         else:
           print(f"Unknown packet received: {packet.type}")
           
