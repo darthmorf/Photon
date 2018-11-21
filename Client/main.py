@@ -215,6 +215,7 @@ class MessageWidget(QWidget):
       loadUi("message.ui", self)
       self.messageOptionBtn.clicked.connect(lambda: self.openMessageOptions())
       self.message = message
+      self.setMouseTracking(1)
 
   def openMessageOptions(self):
     """ Opens UI for managing messages. """
@@ -228,6 +229,10 @@ class MessageWidget(QWidget):
       self.timeLabel.setText(self.message.timeSent)
       self.usernameLabel.setText(formatUsername(self.message.senderName))
       self.messageLabel.setText(formatTextForDisplay(self.message.contents, self.message.colour))
+
+  def mouseMoveEvent(self, event):
+    print(self.message)
+    pass
 
 class MessageOptions(QDialog):
   """ 
