@@ -21,12 +21,11 @@ import sys
 sys.path.insert(0, '../Libs')
 from packets import *
 from photonUtilities import *
+from configManager import *
 
 
 
 # Global vars
-_debug = False
-
 _app = None
 _mainGui = None
 _serverSocket = None
@@ -35,8 +34,9 @@ _userId = None
 _admin = False
 
 NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
-MAXTRANSMISSIONSIZE = 40960
-COMMANDCHAR = "/"
+MAXTRANSMISSIONSIZE = None
+COMMANDCHAR = None
+DEBUG = None
 
 
 # Classes
@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
     try:
       # Not using onProgramExit() as it caused the program to hang when the UI is created
       global _serverSocket
-      debugPrint("Window closed: Force closing all threads and server socket", _debug)
+      debugPrint("Window closed: Force closing all threads and server socket", DEBUG)
       _serverSocket.close()
       os._exit(1)
     except Exception:
@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
       self.messageLayout.setWidget(rowCount, QFormLayout.LabelRole, newWidget) # Append the new message widget to the end of the container   
       newWidget.setFixedWidth(self.messageScrollArea.width() - 10) # Set widget width to match the parent width
 
-      debugPrint(rawMessage, _debug)
+      debugPrint(rawMessage, DEBUG)
       _app.alert(_mainGui, 1000) # Flash the taskbar icon for 1 second
     except Exception:
       reportError()
@@ -525,7 +525,7 @@ Args:
 def SendMessage(message):
   try:
       global _serverSocket, _username
-      debugPrint(_userId, _debug)
+      debugPrint(_userId, DEBUG)
       newMessage = Message(_userId, _username, message)
       newMessagePacket = MessagePacket(newMessage)
       _serverSocket.send(encode(newMessagePacket))
@@ -569,7 +569,7 @@ def printMessage(message):
 def onProgramExit():
   try:
     global _serverSocket
-    debugPrint("Window closed: Force closing all threads and server socket", _debug)
+    debugPrint("Window closed: Force closing all threads and server socket", DEBUG)
     _serverSocket.close()
     os._exit(1)
   except Exception:
@@ -714,7 +714,13 @@ def formatBalsmaiq(message, specialChar, tag):
 
 def __main__():
   try:
-    global _serverSocket, _username, Password
+    global _serverSocket, _username, MAXTRANSMISSIONSIZE, COMMANDCHAR, DEBUG
+
+    _configManager = ClientConfig("config.json")
+    MAXTRANSMISSIONSIZE = _configManager.data["maxTransmissionSize"]
+    COMMANDCHAR = _configManager.data["commandChar"]
+    DEBUG = _configManager.data["debug"]
+
     atexit.register(onProgramExit)
 
     # Print PyQt 'silent' errors 
@@ -730,7 +736,7 @@ def __main__():
 
     # Get local machine name and assign a port
     host = socket.gethostname()
-    port = 9998
+    port = _configManager.data["port"]
 
     # Connect to hostname on the port.
     _serverSocket.connect((host, port))

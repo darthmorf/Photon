@@ -68,3 +68,5 @@ Client/Thumbs\.db
 Server/log\.txt
 
 Server/config\.json
+
+Client/config\.json

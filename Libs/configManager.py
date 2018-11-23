@@ -27,7 +27,8 @@ class ServerConfig(ConfigManager):
 
             "dbFile": "photon.db",
             "infoLoggingEnabled": True,
-            "maxTransmissionSize": 40960
+            "maxTransmissionSize": 40960,
+            "port": 9998
 
             }
             
@@ -38,9 +39,10 @@ class ClientConfig(ConfigManager):
     def __init__(self, file):
         defaultData = {
 
-            "infoLoggingEnabled": True,
             "maxTransmissionSize": 40960,
-            "debug": True
+            "debug": True,
+            "commandChar": "/",
+            "port": 9998
 
             }
 
