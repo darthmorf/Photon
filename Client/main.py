@@ -25,14 +25,14 @@ from photonUtilities import *
 
 
 # Global vars
-Debug = False
+_debug = False
 
-App = None
-MainGui = None
-ServerSocket = None
-Username = ""
-UserId = None
-Admin = False
+_app = None
+_mainGui = None
+_serverSocket = None
+_username = ""
+_userId = None
+_admin = False
 
 NONPRINTINGCHAR = '\u200B' # Used to replace a character in a string whilst keeping indexes the same
 MAXTRANSMISSIONSIZE = 40960
@@ -98,12 +98,12 @@ class MainWindow(QMainWindow):
     try:
       self.usernameLabel.setText(f"Logged in as {username}")
     except Exception:
-      ReportError()
+      reportError()
 
 
   def postLogin(self):
     """ Setup for after login is completed. """
-    if not Admin:
+    if not _admin:
         self.adminSettingsButton.hide()
     else:
         self.adminSettingsButton.clicked.connect(self.openAdminSettings)
@@ -114,19 +114,19 @@ class MainWindow(QMainWindow):
       self.adminSettings = AdminSettingsWindow(self)
       self.adminSettings.show()
     except Exception:
-      ReportError()
+      reportError()
   
 
   def closeEvent(self, event):
     """ When main window closed, tidy up loose ends and exit. """
     try:
       # Not using onProgramExit() as it caused the program to hang when the UI is created
-      global ServerSocket
-      debugPrint("Window closed: Force closing all threads and server socket", Debug)
-      ServerSocket.close()
+      global _serverSocket
+      debugPrint("Window closed: Force closing all threads and server socket", _debug)
+      _serverSocket.close()
       os._exit(1)
     except Exception:
-      ReportError()
+      reportError()
 
 
   def WriteLine(self, message):
@@ -144,10 +144,10 @@ class MainWindow(QMainWindow):
       self.messageLayout.setWidget(rowCount, QFormLayout.LabelRole, newWidget) # Append the new message widget to the end of the container   
       newWidget.setFixedWidth(self.messageScrollArea.width() - 10) # Set widget width to match the parent width
 
-      debugPrint(rawMessage, Debug)
-      App.alert(MainGui, 1000) # Flash the taskbar icon for 1 second
+      debugPrint(rawMessage, _debug)
+      _app.alert(_mainGui, 1000) # Flash the taskbar icon for 1 second
     except Exception:
-      ReportError()
+      reportError()
 
     
   def UpdateConnectedUsers(self, userList):
@@ -176,7 +176,7 @@ class MainWindow(QMainWindow):
           SendMessage(text)
         self.messageInput.setText("")
     except Exception:
-      ReportError()
+      reportError()
 
 
   def resizeEvent(self, event): 
@@ -230,7 +230,7 @@ class MessageWidget(QWidget):
       self.messageOptions = MessageOptions(self, message=self.message)
       self.messageOptions.show()
     except Exception:
-      ReportError()
+      reportError()
 
   def updateText(self):
       self.timeLabel.setText(self.message.timeSent)
@@ -265,18 +265,18 @@ class MessageOptions(QDialog):
       self.editMessage.setText(message.contents)
 
       # Users can only edit and delete their own messages. Admins can delete any message. You cannot report your own or a server message. Local messages cannot be modified.
-      if self.message.senderId != UserId or self.message.senderId == "":
+      if self.message.senderId != _userId or self.message.senderId == "":
         self.editMessage.setEnabled(False)
         self.editButton.setEnabled(False)
-        if not Admin or self.message.senderId == "":
+        if not _admin or self.message.senderId == "":
           self.deleteButton.setEnabled(False)
       
-      if self.message.senderId == 1 or self.message.senderId == UserId or self.message.senderId == "":
+      if self.message.senderId == 1 or self.message.senderId == _userId or self.message.senderId == "":
         self.reportButton.setEnabled(False)
         self.reportReason.setEnabled(False)
 
     except Exception:
-      ReportError()
+      reportError()
 
   def sendReport(self):
     reason = self.reportReason.text()
@@ -287,8 +287,8 @@ class MessageOptions(QDialog):
       errNotifier.setWindowTitle("Report Error")
       errNotifier.exec_()
     else:
-      reportPacket = ReportPacket(self.message.messageId, UserId, reason)
-      ServerSocket.send(encode(reportPacket))
+      reportPacket = ReportPacket(self.message.messageId, _userId, reason)
+      _serverSocket.send(encode(reportPacket))
       successNotifier = QMessageBox()
       successNotifier.setIcon(QMessageBox.Information)
       successNotifier.setText("Successfully reported message.")
@@ -297,7 +297,7 @@ class MessageOptions(QDialog):
 
   def editMessageContents(self):
     editMessagePacket = EditMessagePacket(self.message.messageId, self.editMessage.text())
-    ServerSocket.send(encode(editMessagePacket))
+    _serverSocket.send(encode(editMessagePacket))
     successNotifier = QMessageBox()
     successNotifier.setIcon(QMessageBox.Information)
     successNotifier.setText("Successfully edited message.")
@@ -306,7 +306,7 @@ class MessageOptions(QDialog):
 
   def deleteMessage(self):
     deleteMessagePacket = DeleteMessagePacket(self.message.messageId)
-    ServerSocket.send(encode(deleteMessagePacket))
+    _serverSocket.send(encode(deleteMessagePacket))
     successNotifier = QMessageBox()
     successNotifier.setIcon(QMessageBox.Information)
     successNotifier.setText("Successfully deleted message.")
@@ -323,7 +323,7 @@ class AdminSettingsWindow(QDialog):
       self.userListComboBox.currentIndexChanged.connect(self.ComboBoxUpdated)
       self.toggleAdminStatusBtn.clicked.connect(self.toggleAdminStatus)
       requestUserListPacket = Packet("REQUESTUSERLIST")
-      ServerSocket.send(encode(requestUserListPacket))
+      _serverSocket.send(encode(requestUserListPacket))
       self.selectedUserAdmin = None
       self.selectedUserId = None
 
@@ -340,7 +340,7 @@ class AdminSettingsWindow(QDialog):
   def ComboBoxUpdated(self):
     """ Event for when a new user is selected from the combobox. Fetches information about that user. """
     requestUserInfoPacket = RequestUserInfoPacket(self.userListComboBox.currentText())
-    ServerSocket.send(encode(requestUserInfoPacket))
+    _serverSocket.send(encode(requestUserInfoPacket))
 
   def UpdateUserInfo(self, userId, messageCount, admin, flags):
     """
@@ -378,7 +378,7 @@ class AdminSettingsWindow(QDialog):
 
   def toggleAdminStatus(self):
     adminStatusPacket = SetAdminStatusPacket(not self.selectedUserAdmin, self.selectedUserId)
-    ServerSocket.send(encode(adminStatusPacket))
+    _serverSocket.send(encode(adminStatusPacket))
     self.ComboBoxUpdated()
 
 class LoginWindow(QDialog):
@@ -391,7 +391,7 @@ class LoginWindow(QDialog):
       self.newAccButton.clicked.connect(self.openRegisterWindow)
       self.usernameInput.returnPressed.connect(self.onLoginClick)
     except Exception:
-      ReportError()
+      reportError()
 
 
   def openRegisterWindow(self):
@@ -400,13 +400,13 @@ class LoginWindow(QDialog):
       registerGui = RegisterWindow()
       registerGui.exec_()
     except Exception:
-      ReportError()
+      reportError()
 
 
   def onLoginClick(self):
     """ Called on login button click. Basic input validation. """
     try:
-      global Username
+      global _username
       username = self.usernameInput.text()
       password = self.passwordInput.text()
       
@@ -421,7 +421,7 @@ class LoginWindow(QDialog):
       else:
         self.errLabel.setText("Usernames must not consist of whitespace only")
     except Exception:
-      ReportError()
+      reportError()
 
 
   def Login(self, username, password):
@@ -433,12 +433,12 @@ class LoginWindow(QDialog):
       password (string): Password to login with, not yet hashed.
     """
     try:
-      global ServerSocket, Username, UserId, Admin
-      password = HashString(password)
+      global _serverSocket, _username, _userId, _admin
+      password = hashString(password)
       loginRequest = LoginRequestPacket(username, password)
-      ServerSocket.send(encode(loginRequest))
+      _serverSocket.send(encode(loginRequest))
 
-      loginResponsePacket = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE))
+      loginResponsePacket = decode(_serverSocket.recv(MAXTRANSMISSIONSIZE))
 
       if loginResponsePacket.type != "LOGINRESPONSE":
         self.Login(username, password) # Occasionally a left-over packet can make it's way here - if so we'll just try again
@@ -446,14 +446,14 @@ class LoginWindow(QDialog):
 
       if loginResponsePacket.valid:
         self.close()
-        Username = username
-        UserId = loginResponsePacket.id
-        Admin = loginResponsePacket.admin
+        _username = username
+        _userId = loginResponsePacket.id
+        _admin = loginResponsePacket.admin
         
       else:
         self.errLabel.setText(loginResponsePacket.err)
     except Exception:
-      ReportError()
+      reportError()
 
 
 class RegisterWindow(QDialog):
@@ -464,7 +464,7 @@ class RegisterWindow(QDialog):
       loadUi("register.ui", self)
       self.registerButton.clicked.connect(self.validateInputs)
     except Exception:
-      ReportError()
+      reportError()
 
   def validateInputs(self):
     """ Called on register button click. Basic input validation. """
@@ -484,7 +484,7 @@ class RegisterWindow(QDialog):
       else:
         self.errLabel.setText("Usernames must not consist of whitespace only, and be\nless than 33 chars long")
     except Exception:
-      ReportError()
+      reportError()
 
   def register(self, username, password):
     """
@@ -495,11 +495,11 @@ class RegisterWindow(QDialog):
       password (string): Password to register, not yet hashed.
     """
     try:
-      password = HashString(password)
+      password = hashString(password)
       registerPacket = RegisterPacket(username, password)
-      global ServerSocket
-      ServerSocket.send(encode(registerPacket))
-      registerResponse = decode(ServerSocket.recv(MAXTRANSMISSIONSIZE)) # Wait for user creation packet response
+      global _serverSocket
+      _serverSocket.send(encode(registerPacket))
+      registerResponse = decode(_serverSocket.recv(MAXTRANSMISSIONSIZE)) # Wait for user creation packet response
       if registerResponse.valid:
         successNotifier = QMessageBox()
         successNotifier.setIcon(QMessageBox.Information)
@@ -510,7 +510,7 @@ class RegisterWindow(QDialog):
       else:
         self.errLabel.setText(registerResponse.err)
     except Exception:
-      ReportError()
+      reportError()
 
 
 
@@ -524,14 +524,14 @@ Args:
 """
 def SendMessage(message):
   try:
-      global ServerSocket, Username
-      debugPrint(UserId, Debug)
-      newMessage = Message(UserId, Username, message)
+      global _serverSocket, _username
+      debugPrint(_userId, _debug)
+      newMessage = Message(_userId, _username, message)
       newMessagePacket = MessagePacket(newMessage)
-      ServerSocket.send(encode(newMessagePacket))
+      _serverSocket.send(encode(newMessagePacket))
 
   except Exception:
-     ReportError()
+     reportError()
 
 """
 Formats a command string into arguments and sends it to the server.
@@ -541,16 +541,16 @@ Args:
 """
 def ParseCommand(command):
   try:
-    global ServerSocket
+    global _serverSocket
     command = command[1:] # Strip command char
     args = command.split(" ") 
     command = args[0]
     del args[0]
     commandPacket = CommandPacket(command, args)
-    ServerSocket.send(encode(commandPacket))
+    _serverSocket.send(encode(commandPacket))
     
   except Exception:
-    ReportError()
+    reportError()
     
 """
 Ensures a message is in the correct format and then passes it to the GUI to display.
@@ -563,25 +563,25 @@ def printMessage(message):
   if type(message) is str:
     message = Message(contents=message)
 
-  MainGui.writeSignal.emit(message)
+  _mainGui.writeSignal.emit(message)
 
 
 def onProgramExit():
   try:
-    global ServerSocket
-    debugPrint("Window closed: Force closing all threads and server socket", Debug)
-    ServerSocket.close()
+    global _serverSocket
+    debugPrint("Window closed: Force closing all threads and server socket", _debug)
+    _serverSocket.close()
     os._exit(1)
   except Exception:
-      ReportError()
+      reportError()
 
 
 def ListenForPackets(server):
   try:
-    global ServerSocket, MainGui
+    global _serverSocket, _mainGui
   
     readyToListen = Packet("READYTOLISTEN") # Tell the server we are ready to listen using generic packet
-    ServerSocket.send(encode(readyToListen))
+    _serverSocket.send(encode(readyToListen))
     
     while True:
       packet = decode(server.recv(MAXTRANSMISSIONSIZE))
@@ -594,7 +594,7 @@ def ListenForPackets(server):
         formatMessage(packet)
 
       elif packet.type == "ONLINEUSERS":
-        MainGui.usersChangedSignal.emit(packet.userList)
+        _mainGui.usersChangedSignal.emit(packet.userList)
 
       elif packet.type == "COMMANDRESPONSE":
         if packet.success:
@@ -620,17 +620,17 @@ def ListenForPackets(server):
 
 
       elif packet.type == "USERLIST":
-        MainGui.adminSettings.UserListReceived(packet.userList)
+        _mainGui.adminSettings.UserListReceived(packet.userList)
 
 
       elif packet.type == "USERINFO":
-        MainGui.adminSettings.UpdateUserInfo(packet.id, packet.messageCount, packet.admin, packet.flags)
+        _mainGui.adminSettings.UpdateUserInfo(packet.id, packet.messageCount, packet.admin, packet.flags)
 
       elif packet.type == "EDITMESSAGE":
-        MainGui.updateMessageSignal.emit(packet.messageId, packet.newContents)
+        _mainGui.updateMessageSignal.emit(packet.messageId, packet.newContents)
 
       elif packet.type == "DELETEMESSAGE":
-        MainGui.deleteMessageSignal.emit(packet.messageId)
+        _mainGui.deleteMessageSignal.emit(packet.messageId)
 
       else:
           print(f"Unknown packet received: {packet.type}")
@@ -638,14 +638,14 @@ def ListenForPackets(server):
           
 
   except Exception:
-    ReportError() 
+    reportError() 
 
 
 def formatMessage(packet):
   try:
     printMessage(packet.message)
   except Exception:
-      ReportError()
+      reportError()
         
 
 def formatTextForDisplay(message, colour):
@@ -661,7 +661,7 @@ def formatTextForDisplay(message, colour):
 
     return message
   except Exception:
-     ReportError()
+     reportError()
 
 def inverseFormatTextForDisplay(message):
     try:
@@ -675,7 +675,7 @@ def inverseFormatTextForDisplay(message):
 
       return (message, colour)
     except Exception:
-      ReportError()
+      reportError()
 
 
 def formatBalsmaiq(message, specialChar, tag):
@@ -709,12 +709,12 @@ def formatBalsmaiq(message, specialChar, tag):
     message = "".join(message) # Convert back to string
     return message
   except Exception:
-      ReportError()
+      reportError()
 
 
 def __main__():
   try:
-    global ServerSocket, Username, Password
+    global _serverSocket, _username, Password
     atexit.register(onProgramExit)
 
     # Print PyQt 'silent' errors 
@@ -726,35 +726,35 @@ def __main__():
     sys.excepthook = exception_hook
 
     # Create a socket object
-    ServerSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+    _serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
     # Get local machine name and assign a port
     host = socket.gethostname()
     port = 9998
 
     # Connect to hostname on the port.
-    ServerSocket.connect((host, port))
+    _serverSocket.connect((host, port))
 
     # Display UI
-    global GuiDone, App, MainGui
-    App = QApplication(sys.argv)
-    MainGui = MainWindow()
+    global GuiDone, _app, _mainGui
+    _app = QApplication(sys.argv)
+    _mainGui = MainWindow()
     loginGui = LoginWindow()
     loginGui.exec_()
-    MainGui.postLogin()
-    if Username == "": # Window was closed without an input
+    _mainGui.postLogin()
+    if _username == "": # Window was closed without an input
       os._exit(1)
-    MainGui.setUsername(Username)
-    MainGui.show()
+    _mainGui.setUsername(_username)
+    _mainGui.show()
     
     # Start listener thread for server responses
-    listenerThread = Thread(target=ListenForPackets, args=(ServerSocket,))
+    listenerThread = Thread(target=ListenForPackets, args=(_serverSocket,))
     listenerThread.start()
 
-    sys.exit(App.exec_())
+    sys.exit(_app.exec_())
       
   except Exception:
-      ReportError()
+      reportError()
 
 
 if __name__ == "__main__":

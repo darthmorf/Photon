@@ -5,7 +5,6 @@ from threading import *
 # Load classes and functions from shared libs
 import sys
 sys.path.insert(0, '../Libs')
-from packets import *
 from photonUtilities import *
 
 class Database:
@@ -20,7 +19,6 @@ class Database:
 
   ToDo:
     Get database file to load via parameter.
-    Move to seperate file.
   """
   def __init__(self):
     """ Initialises the database by creating a read only connection and starting the asyncronous writer function """
@@ -32,7 +30,7 @@ class Database:
       self.writeThread = Thread(target=self.dbWriter)
       self.writeThread.start()
     except Exception:
-      ReportError()
+      reportError()
 
     
   def dbWriter(self): 
@@ -54,7 +52,7 @@ class Database:
           command[2].release()  # Release semaphore flag so the client thread can continue
           connection.close()
     except Exception:
-      ReportError()
+      reportError()
 
 
   def queryLogin(self, username, password):
@@ -79,7 +77,7 @@ class Database:
             return (True, user[0], False)
       return (False)
     except Exception:
-      ReportError()
+      reportError()
 
 
   def loadMessages(self, count=510): # Load last x messages from database
@@ -100,7 +98,7 @@ class Database:
           constructedMessages.append(constructedMessage)
         return constructedMessages
     except Exception:
-        ReportError()
+        reportError()
 
 
   def userExists(self, username):
@@ -168,7 +166,7 @@ class Database:
                      
       return (userId, messageCount, admin, flags)
     except Exception:
-      ReportError()
+      reportError()
   
   def addUser(self, username, password):
     """

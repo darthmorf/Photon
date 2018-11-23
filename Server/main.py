@@ -151,7 +151,7 @@ class Client:
           
       return # Return from thread
     except Exception:
-      ReportError()
+      reportError()
 
 
   def ListenForPackets(self):
@@ -167,7 +167,7 @@ class Client:
         
         packet = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for message from client
         if packet.type == "MESSAGE":
-          packet.message.timeSent = GetDateTime() # Update the message with the time it was received
+          packet.message.timeSent = getDateTime() # Update the message with the time it was received
           packet.message = _database.addMessage(packet.message)
           sendToClients(packet)
 
@@ -212,7 +212,7 @@ class Client:
                 success = True
                 message = "_ (Whisper) " + " ".join(args) + "_"
                 response = formatUsername(self.username) + message
-                newMessage = Message(self.userid, self.username, message, GetDateTime(), targetClient.userid, INFO)
+                newMessage = Message(self.userid, self.username, message, getDateTime(), targetClient.userid, INFO)
                 newMessage = _database.addMessage(newMessage)
                 break
             else:
@@ -221,7 +221,7 @@ class Client:
           else:
             err = "Unrecognised command"
 
-          response = CommandResponsePacket(command, success, err, response, GetDateTime())
+          response = CommandResponsePacket(command, success, err, response, getDateTime())
           self.socket.send(encode(response))
           if targetClient != self:
             targetClient.socket.send(encode(response))
@@ -283,7 +283,7 @@ class Client:
       sendOnlineUsersPacket() # Tell clients a user has left
       
     except Exception:
-      ReportError()
+      reportError()
 
 
 
@@ -303,7 +303,7 @@ def sendToClients(packet):
   except ConnectionResetError: # Client has lost connection
     pass    
   except Exception:
-    ReportError()
+    reportError()
 
 
 def sendOnlineUsersPacket():
@@ -315,11 +315,11 @@ def sendOnlineUsersPacket():
     users = []
     for client in _clients:
       users.append(client.username)
-    users = StringListMergeSort(users)
+    users = stringListMergeSort(users)
     onlineUsersPacket = OnlineUsersPacket(users)
     sendToClients(onlineUsersPacket)
   except Exception:
-    ReportError()
+    reportError()
 
 
 def __main__():
@@ -351,7 +351,7 @@ def __main__():
       clientSocket, clientAddress = serverSocket.accept()
       newClient = Client(clientSocket, clientAddress)
   except Exception:
-    ReportError()
+    reportError()
 
 
 

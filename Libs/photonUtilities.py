@@ -78,7 +78,7 @@ class Message():
     self.messageId = messageId
 
 
-def HashString(string): 
+def hashString(string): 
   """
   Custom implementation of a simple one way hashing algorithm
 
@@ -116,7 +116,7 @@ def HashString(string):
   return hashed
 
 
-def IntegerMergeSort(mergelist):
+def integerMergeSort(mergelist):
   """
   Custom implementation of a mergesort algorithm for integers.
 
@@ -158,7 +158,7 @@ def IntegerMergeSort(mergelist):
   return mergelist
 
 
-def StringListMergeSort(mergelist):
+def stringListMergeSort(mergelist):
   """
   Custom implementation of a mergesort algorithm for strings.
 
@@ -203,12 +203,12 @@ def StringListMergeSort(mergelist):
   return mergelist
 
 
-def ReportError():
+def reportError():
   """ Easier name for traceback.print_exc(). """
   traceback.print_exc()
 
 
-def GetDateTime():
+def getDateTime():
   """ Gets the current time in yy/mm/dd HH:MM format. """
   return datetime.datetime.now().strftime("%y-%m-%d %H:%M") 
 
@@ -256,7 +256,7 @@ def generateJoinLeaveMessage(direction, username):
   Returns:
     (Message): The generated message.
   """
-  return Message(1, "SERVER", "_" + username + " has " + direction + " the server_", GetDateTime(), colour=INFO)
+  return Message(1, "SERVER", "_" + username + " has " + direction + " the server_", getDateTime(), colour=INFO)
 
 
 def debugPrint(message, debug):
