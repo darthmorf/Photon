@@ -16,14 +16,11 @@ class Database:
     roCursor  (sqlite3.Cursor): The cursor for the main read only connection.
     writeQueue (photonUtilities.CircularQueue): The queue used for database write commands in the dbWriter() method.
     writeThread (threading.Thread): The separate thread started for the database writer.
-
-  ToDo:
-    Get database file to load via parameter.
   """
-  def __init__(self):
+  def __init__(self, file):
     """ Initialises the database by creating a read only connection and starting the asyncronous writer function """
     try:
-      self.roConnection = sqlite3.connect("file:photon.db?mode=ro", uri=True) # Load database from file in read only mode
+      self.roConnection = sqlite3.connect(f"file:{file}?mode=ro", uri=True) # Load database from file in read only mode
       self.roCursor = self.roConnection.cursor()
       self.messages = self.loadMessages()
       self.writeQueue = CircularQueue(999)

@@ -66,3 +66,5 @@ Client/\.vscode/
 Client/Thumbs\.db
 
 Server/log\.txt
+
+Server/config\.json

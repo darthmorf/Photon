@@ -12,6 +12,7 @@ from packets import *
 from photonUtilities import *
 from database import *
 from logger import *
+from configManager import *
 
 
 
@@ -20,9 +21,10 @@ from logger import *
 _clients  = []
 _database = None
 _logger = None
-_infoLoggingEnabled = True
+_configManager = None
 
-MAXTRANSMISSIONSIZE = 40960
+_infoLoggingEnabled = None
+MAXTRANSMISSIONSIZE = None
 
 
 
@@ -343,9 +345,16 @@ def __main__():
   try:
     global _database, _logger
     _logger = Logger()
+
+    _configManager = ServerConfig("config.json")
+    _infoLoggingEnabled = _configManager.data["infoLoggingEnabled"]
+    MAXTRANSMISSIONSIZE = _configManager.data["maxTransmissionSize"]
+    dbFile = _configManager.data["dbFile"]
+    
     _logger.log("Server started up", _infoLoggingEnabled)
+
     _logger.log("Loading Database...", _infoLoggingEnabled)
-    _database = Database()  
+    _database = Database(dbFile)  
     _database.loadMessages()    
     # Create a socket object
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 

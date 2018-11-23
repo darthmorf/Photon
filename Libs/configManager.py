@@ -1,0 +1,47 @@
+import json
+import os.path
+
+class ConfigManager():
+    def __init__(self, file, defaultData):
+        self.data = self.loadJson(file)
+        if self.data == None:
+            self.initJson(file, defaultData)
+            self.data = self.loadJson(file)
+
+    def loadJson(self, file):        
+        if os.path.isfile(file):
+            with open(file, "r") as jsonFile:
+                return json.load(jsonFile)
+        else:
+            return None
+
+    def initJson(self, file, defaultData):        
+        jsonString = json.dumps(defaultData)
+        with open(file, "w") as jsonFile:
+            jsonFile.write(jsonString)
+
+
+class ServerConfig(ConfigManager):
+    def __init__(self, file):
+        defaultData = {
+
+            "dbFile": "photon.db",
+            "infoLoggingEnabled": True,
+            "maxTransmissionSize": 40960
+
+            }
+            
+        super().__init__(file, defaultData)
+
+
+class ClientConfig(ConfigManager):
+    def __init__(self, file):
+        defaultData = {
+
+            "infoLoggingEnabled": True,
+            "maxTransmissionSize": 40960,
+            "debug": True
+
+            }
+
+        super().__init__(file, defaultData)
