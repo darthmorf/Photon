@@ -172,8 +172,8 @@ def stringListMergeSort(mergelist):
     mid = len(mergelist) // 2 # Perform integer division
     lefthalf = mergelist[:mid] # Left half of merglist into lefthalf
     righthalf = mergelist[mid:] # Right half of merglist into righthalf
-    lefthalf = StringListMergeSort(lefthalf)
-    righthalf = StringListMergeSort(righthalf)
+    lefthalf = stringListMergeSort(lefthalf)
+    righthalf = stringListMergeSort(righthalf)
 
     i = 0
     j = 0
