@@ -62,3 +62,7 @@ Server/\.vscode/
 Client/\.vscode/
 
 *.pdf
+
+Client/Thumbs\.db
+
+Server/log\.txt

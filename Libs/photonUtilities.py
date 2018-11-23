@@ -203,9 +203,11 @@ def stringListMergeSort(mergelist):
   return mergelist
 
 
-def reportError():
+def reportError(exception="", logger=None):
   """ Easier name for traceback.print_exc(). """
   traceback.print_exc()
+  if logger != None:    
+    logger.log(repr(exception))
 
 
 def getDateTime():

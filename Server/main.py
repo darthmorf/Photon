@@ -11,6 +11,7 @@ sys.path.insert(0, '../Libs')
 from packets import *
 from photonUtilities import *
 from database import *
+from logger import *
 
 
 
@@ -18,6 +19,8 @@ from database import *
 
 _clients  = []
 _database = None
+_logger = None
+_infoLoggingEnabled = True
 
 MAXTRANSMISSIONSIZE = 40960
 
@@ -60,7 +63,7 @@ class Client:
       self.admin = False
       _clients.append(self)
 
-      print(f"Received a connection from {self.address}, id {self.id}")
+      _logger.log(f"Received a connection from {self.address}, id {self.id}", _infoLoggingEnabled)
 
       # Client Login
       loginInvalid = True
@@ -77,6 +80,7 @@ class Client:
           else:
             _database.addUser(loginRequestPacket.username, loginRequestPacket.password)
             userRegistered = RegisterResponsePacket(True)
+            _logger.log(f"Attempted to register user: {loginRequestPacket.username}. Successful: {userRegistered.valid}", _infoLoggingEnabled)
 
           self.socket.send(encode(userRegistered))
         
@@ -93,12 +97,12 @@ class Client:
             valid = ret[0]
             
           if not valid:
-            print(f"Invalid login from: {self.address}, id {self.id} - {err}")
+            _logger.log(f"Invalid login from: {self.address}, id {self.id} - {err}", _infoLoggingEnabled)
             loginResponse = LoginResponsePacket(False, err) # Tell the client the login was invalid
             self.socket.send(encode(loginResponse))
 
           else:
-            print(f"Valid login from: {self.address}, id {self.id}")
+            _logger.log(f"Valid login from: {self.address}, id {self.id}", _infoLoggingEnabled)
             loginResponse = LoginResponsePacket(True, userId=ret[1], admin=ret[2]) # Tell the client the login was valid
             self.socket.send(encode(loginResponse))
             self.userid = ret[1]
@@ -134,7 +138,7 @@ class Client:
       sendOnlineUsersPacket() # Tell clients a new user has joined
 
     except ConnectionResetError: # Lost connection with client
-      print(f"Lost connection with: {self.address}, id {self.id}; closing connection")
+      _logger.log(f"Lost connection with: {self.address}, id {self.id}; closing connection", _infoLoggingEnabled)
       
       self.socket.close() # Close socket
       for i in range(0, len(_clients)):
@@ -150,8 +154,8 @@ class Client:
         sendOnlineUsersPacket() # Tell clients a user has left
           
       return # Return from thread
-    except Exception:
-      reportError()
+    except Exception as err:
+      reportError(err, _logger)
 
 
   def ListenForPackets(self):
@@ -162,7 +166,7 @@ class Client:
     Break this up?
     """
     try:
-      global _clients, _database
+      global _clients, _database, _logger
       while True:
         
         packet = decode(self.socket.recv(MAXTRANSMISSIONSIZE)) # Wait for message from client
@@ -170,6 +174,7 @@ class Client:
           packet.message.timeSent = getDateTime() # Update the message with the time it was received
           packet.message = _database.addMessage(packet.message)
           sendToClients(packet)
+          _logger.log(f"{packet.message.senderName}: {packet.message.contents}", _infoLoggingEnabled)
 
         elif packet.type == "COMMAND":
           command = packet.command
@@ -178,7 +183,7 @@ class Client:
           err = ""
           response = ""
           targetClient = self
-          print(f"User {self.username}, {self.id} executed command {command} with args {args}")
+          _logger.log(f"User {self.username}, {self.id} executed command {command} with args {args}", _infoLoggingEnabled)
 
           if command == "help":
             success = True
@@ -237,22 +242,28 @@ class Client:
 
         elif packet.type == "REPORTPACKET":
           _database.addReport(packet.messageId, packet.reporterId, packet.reportReason)
+          _logger.log(f"{self.username} registered report: {packet.reportReason}", _infoLoggingEnabled)
 
         elif packet.type == "EDITMESSAGE":
           _database.editMessage(packet.messageId, packet.newContents)
           i = 0
+          oldMessage = None
           for message in _database.messages:
             if message.messageId == packet.messageId:
+              oldMessage = _database.messages[i].contents
               _database.messages[i].contents = packet.newContents
               break
             i+=1            
-          sendToClients(packet) # Tell clients that the message has been edited.
+          sendToClients(packet) # Tell clients that the message has been edited.          
+          _logger.log(f"{self.username} edited message from '{oldMessage}' to '{packet.newContents}'", _infoLoggingEnabled)
 
         elif packet.type == "DELETEMESSAGE":
           _database.deleteMessage(packet.messageId)
           i = 0
+          oldMessage = None
           for message in _database.messages:
             if message.messageId == packet.messageId:
+              oldMessage = _database.messages[i].contents
               _database.messages[i].contents = "_message deleted_"
               _database.messages[i].senderId = 1
               _database.messages[i].senderName = "SERVER"
@@ -260,15 +271,17 @@ class Client:
               break
             i+=1            
           sendToClients(packet) # Tell clients that the message has been deleted.
+          _logger.log(f"{self.username} deleted message: {oldMessage}", _infoLoggingEnabled)
 
         elif packet.type == "SETADMINSTATUS":
           _database.setAdmin(packet.admin, packet.userId)
+          _logger.log(f"User id {packet.userId} set to admin: {packet.admin}", _infoLoggingEnabled)
 
         else:
-          print(f"Unknown packet received: {packet.type}")
+          _logger.log(f"Unknown packet received: {packet.type}", _infoLoggingEnabled)
           
     except ConnectionResetError: # Lost connection with client
-      print(f"Lost connection with: {self.address}, id {self.id}; closing connection")
+      _logger.log(f"Lost connection with: {self.address}, id {self.id}; closing connection", _infoLoggingEnabled)
       
       self.socket.close() # Close socket
       for i in range(0, len(_clients)):
@@ -282,8 +295,8 @@ class Client:
       sendToClients(announceUserPacket)
       sendOnlineUsersPacket() # Tell clients a user has left
       
-    except Exception:
-      reportError()
+    except Exception as err:
+      reportError(err, _logger)
 
 
 
@@ -302,8 +315,8 @@ def sendToClients(packet):
       client.socket.send(encode(packet))    
   except ConnectionResetError: # Client has lost connection
     pass    
-  except Exception:
-    reportError()
+  except Exception as err:
+    reportError(err, _logger)
 
 
 def sendOnlineUsersPacket():
@@ -318,8 +331,8 @@ def sendOnlineUsersPacket():
     users = stringListMergeSort(users)
     onlineUsersPacket = OnlineUsersPacket(users)
     sendToClients(onlineUsersPacket)
-  except Exception:
-    reportError()
+  except Exception as err:
+    reportError(err, _logger)
 
 
 def __main__():
@@ -328,10 +341,12 @@ def __main__():
   Loads database, then listens for connections and assigns them new threads as they come in.
   """
   try:
-    print("Loading Database...")
-    global _database
+    global _database, _logger
+    _logger = Logger()
+    _logger.log("Server started up", _infoLoggingEnabled)
+    _logger.log("Loading Database...", _infoLoggingEnabled)
     _database = Database()  
-    _database.loadMessages()
+    _database.loadMessages()    
     # Create a socket object
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
@@ -344,14 +359,14 @@ def __main__():
 
     # Queue up to 5 requests
     serverSocket.listen(5)                                           
-    print("Listening for connections...")
+    _logger.log("Listening for connections...", _infoLoggingEnabled)
      
     while True:
       # Wait for connections
       clientSocket, clientAddress = serverSocket.accept()
       newClient = Client(clientSocket, clientAddress)
-  except Exception:
-    reportError()
+  except Exception as err:
+    reportError(err, _logger)
 
 
 
