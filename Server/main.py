@@ -95,12 +95,11 @@ class Client:
               break
             
           else:              
-            ret = _database.queryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
-            valid = ret[0]
+            valid = _database.queryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
             
           if not valid:
             _logger.log(f"Invalid login from: {self.address}, id {self.id} - {err}", INFOLOGGINGENABLED)
-            loginResponse = LoginResponsePacket(False, err) # Tell the client the login was invalid
+            loginResponse = LoginResponsePacket(False, err=err) # Tell the client the login was invalid
             self.socket.send(encode(loginResponse))
 
           else:
