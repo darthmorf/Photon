@@ -354,7 +354,6 @@ def __main__():
 
     _logger.log("Loading Database...", INFOLOGGINGENABLED)
     _database = Database(_configManager.data["dbFile"])  
-    _database.loadMessages()    
     # Create a socket object
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
