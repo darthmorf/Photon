@@ -69,6 +69,7 @@ class MainWindow(QMainWindow):
   usersChangedSignal = pyqtSignal(list)
   updateMessageSignal = pyqtSignal(int, str)
   deleteMessageSignal = pyqtSignal(int)
+  connectionLostSignal = pyqtSignal()
 
   def __init__(self, *args):
     """ Initialises the UI and connects all signals and button clicks. """
@@ -82,6 +83,7 @@ class MainWindow(QMainWindow):
       self.usersChangedSignal.connect(self.UpdateConnectedUsers)
       self.updateMessageSignal.connect(self.updateMessageContents)
       self.deleteMessageSignal.connect(self.deleteMessage)
+      self.connectionLostSignal.connect(self.connectionLost)
       self.messageWidget.setLayout(self.messageLayout)
         
     except Exception:
@@ -206,6 +208,20 @@ class MainWindow(QMainWindow):
         layoutItem.widget().message.senderName = "SERVER"
         layoutItem.widget().message.colour = INFO
         layoutItem.widget().updateText()
+
+  def connectionLost(self):
+    errNotifier = QMessageBox()
+    errNotifier.setIcon(QMessageBox.Critical)
+    errNotifier.setText("Lost Connection to server.\nWould you like to try to reconnect? (This will require you to log in again)")
+    errNotifier.setWindowTitle("Lost Connection")
+    errNotifier.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+    result = errNotifier.exec_()
+    
+    if result == QMessageBox.Yes:
+      os.execl(sys.executable, sys.executable, *sys.argv) # Restart app
+    else:
+      os._exit(1) # Quit app
+
 
 
 
@@ -452,6 +468,9 @@ class LoginWindow(QDialog):
         
       else:
         self.errLabel.setText(loginResponsePacket.err)
+
+    except ConnectionResetError:
+      _mainGui.connectionLostSignal.emit()
     except Exception:
       reportError()
 
@@ -635,7 +654,8 @@ def ListenForPackets(server):
       else:
           print(f"Unknown packet received: {packet.type}")
           
-          
+  except ConnectionResetError:
+    _mainGui.connectionLostSignal.emit()
 
   except Exception:
     reportError() 
