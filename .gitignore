@@ -72,3 +72,5 @@ Server/config\.json
 Client/config\.json
 
 Writeup/Diagrams/Thumbs\.db
+
+Client/log\.txt

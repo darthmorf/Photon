@@ -755,7 +755,7 @@ def __main__():
     _serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
     # Get local machine name and assign a port
-    host = socket.gethostname()
+    host = socket.gethostname() # TODO: Load from config
     port = _configManager.data["port"]
 
     # Connect to hostname on the port.
