@@ -469,7 +469,7 @@ class LoginWindow(QDialog):
       else:
         self.errLabel.setText(loginResponsePacket.err)
 
-    except ConnectionResetError:
+    except (ConnectionResetError, ConnectionRefusedError):
       _mainGui.connectionLostSignal.emit()
     except Exception:
       reportError()
@@ -654,7 +654,7 @@ def ListenForPackets(server):
       else:
           print(f"Unknown packet received: {packet.type}")
           
-  except ConnectionResetError:
+  except (ConnectionResetError, ConnectionRefusedError):
     _mainGui.connectionLostSignal.emit()
 
   except Exception:
@@ -779,8 +779,16 @@ def __main__():
 
     sys.exit(_app.exec_())
       
+  except (ConnectionResetError, ConnectionRefusedError):
+    print("Could not connect to server")
+
+    try:
+      _mainGui.connectionLostSignal.emit()
+    except:
+      pass
+
   except Exception:
-      reportError()
+    reportError()
 
 
 if __name__ == "__main__":
