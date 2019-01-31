@@ -23,7 +23,7 @@ class ConfigManager():
 
 class ServerConfig(ConfigManager):
     def __init__(self, file):
-        defaultData = {
+        self.defaultData = {
 
             "dbFile": "photon.db",
             "infoLoggingEnabled": True,
@@ -32,12 +32,12 @@ class ServerConfig(ConfigManager):
 
             }
             
-        super().__init__(file, defaultData)
+        super().__init__(file, self.defaultData)
 
 
 class ClientConfig(ConfigManager):
     def __init__(self, file):
-        defaultData = {
+        self.defaultData = {
 
             "maxTransmissionSize": 40960,
             "debug": True,
@@ -46,4 +46,4 @@ class ClientConfig(ConfigManager):
 
             }
 
-        super().__init__(file, defaultData)
+        super().__init__(file, self.defaultData)
