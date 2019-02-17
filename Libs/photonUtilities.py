@@ -67,8 +67,9 @@ class Message():
     recipientId (int, optional): The user id of the user that sent the message.
     colour (string, optional): The colour to display the message as.
     messageId (int, optional): The id of the message.
+    edited (bool, optional): Denotes whether the message has been edited.
   """
-  def __init__(self, senderId="", senderName="", contents="", timeSent="", recipientId=1, colour="#000000", messageId=""):
+  def __init__(self, senderId="", senderName="", contents="", timeSent="", recipientId=1, colour="#000000", messageId="", edited=False):
     self.senderId = senderId
     self.senderName = senderName
     self.contents = contents
@@ -76,6 +77,7 @@ class Message():
     self.recipientId = recipientId
     self.colour = colour
     self.messageId = messageId
+    self.edited = edited
 
 
 def hashString(string): 
@@ -94,7 +96,7 @@ def hashString(string):
   for char in string:
     bitSum += ord(char)
     bitValue = format(ord(char), 'b') # Convert char to binary
-    bitValueChunk += bitValue # Apend to 'binary chunk'
+    bitValueChunk += bitValue # Append to 'binary chunk'
 
   n = 9
   bitValues = [bitValueChunk[i:i+n] for i in range(0, len(bitValueChunk), n)] # Split 'binary chunk' into list of 9 bit binary numbers

@@ -67,9 +67,8 @@ class MainWindow(QMainWindow):
   # Signals for updating the GUI
   writeSignal = pyqtSignal(Message)
   usersChangedSignal = pyqtSignal(list)
-  updateMessageSignal = pyqtSignal(int, str)
+  updateMessageSignal = pyqtSignal(int, str, bool)
   deleteMessageSignal = pyqtSignal(int)
-  connectionLostSignal = pyqtSignal()
 
   def __init__(self, *args):
     """ Initialises the UI and connects all signals and button clicks. """
@@ -83,7 +82,7 @@ class MainWindow(QMainWindow):
       self.usersChangedSignal.connect(self.UpdateConnectedUsers)
       self.updateMessageSignal.connect(self.updateMessageContents)
       self.deleteMessageSignal.connect(self.deleteMessage)
-      self.connectionLostSignal.connect(self.connectionLost)
+      self.messageScrollArea.verticalScrollBar().rangeChanged.connect(self.ScrollLengthChanged)
       self.messageWidget.setLayout(self.messageLayout)
         
     except Exception:
@@ -145,11 +144,17 @@ class MainWindow(QMainWindow):
       rowCount = self.messageLayout.rowCount() # Get the amount of rows in the message container
       self.messageLayout.setWidget(rowCount, QFormLayout.LabelRole, newWidget) # Append the new message widget to the end of the container   
       newWidget.setFixedWidth(self.messageScrollArea.width() - 10) # Set widget width to match the parent width
-
+      # WIP
+      scrollBar = self.messageScrollArea.verticalScrollBar()
+      scrollBar.setValue(scrollBar.maximum())
+ 
       debugPrint(rawMessage, DEBUG)
       _app.alert(_mainGui, 1000) # Flash the taskbar icon for 1 second
     except Exception:
       reportError()
+
+  def ScrollLengthChanged(self):
+    self.messageScrollArea.verticalScrollBar().setValue(self.messageScrollArea.verticalScrollBar().maximum())
 
     
   def UpdateConnectedUsers(self, userList):
@@ -190,13 +195,14 @@ class MainWindow(QMainWindow):
       layoutItem.widget().setFixedWidth(width)
 
 
-  def updateMessageContents(self, messageId, contents):
+  def updateMessageContents(self, messageId, contents, edited):
     messageWidgets = (self.messageLayout.itemAt(i) for i in range(self.messageLayout.count())) # Get a list of widgets in layout
     
     for layoutItem in messageWidgets:
       if layoutItem.widget().message.messageId == messageId:
         layoutItem.widget().message.contents = contents
         layoutItem.widget().updateText()
+        layoutItem.widget().editLabel.setText("(edited)")
 
   def deleteMessage(self, messageId):
     messageWidgets = (self.messageLayout.itemAt(i) for i in range(self.messageLayout.count())) # Get a list of widgets in layout
@@ -239,6 +245,9 @@ class MessageWidget(QWidget):
       baseColour = QColor("#ffffff")
       self.basePalette = self.palette()
       self.basePalette.setColor(self.backgroundRole(), baseColour)
+
+      if not message.edited:
+        self.editLabel.setText("")
 
   def openMessageOptions(self):
     """ Opens UI for managing messages. """
@@ -460,6 +469,8 @@ class LoginWindow(QDialog):
         self.Login(username, password) # Occasionally a left-over packet can make it's way here - if so we'll just try again
         return
 
+      print(loginResponsePacket.valid)
+      print(loginResponsePacket.err)
       if loginResponsePacket.valid:
         self.close()
         _username = username
@@ -646,7 +657,7 @@ def ListenForPackets(server):
         _mainGui.adminSettings.UpdateUserInfo(packet.id, packet.messageCount, packet.admin, packet.flags)
 
       elif packet.type == "EDITMESSAGE":
-        _mainGui.updateMessageSignal.emit(packet.messageId, packet.newContents)
+        _mainGui.updateMessageSignal.emit(packet.messageId, packet.newContents, packet.edited)
 
       elif packet.type == "DELETEMESSAGE":
         _mainGui.deleteMessageSignal.emit(packet.messageId)
@@ -755,7 +766,7 @@ def __main__():
     _serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
     # Get local machine name and assign a port
-    host = socket.gethostname() # TODO: Load from config
+    host = socket.gethostname()
     port = _configManager.data["port"]
 
     # Connect to hostname on the port.

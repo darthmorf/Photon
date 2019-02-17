@@ -91,7 +91,7 @@ class Database:
         for message in messages:
           self.roCursor.execute("SELECT name FROM User WHERE user_id == ?", (str(message[1]),))
           username = self.roCursor.fetchall()[0][0]
-          constructedMessage = Message(messageId=message[0], senderId=message[1], senderName=username, contents=message[2], timeSent=message[3], recipientId=message[4], colour=message[5])
+          constructedMessage = Message(messageId=message[0], senderId=message[1], senderName=username, contents=message[2], timeSent=message[3], recipientId=message[4], colour=message[5], edited=message[6])
           constructedMessages.append(constructedMessage)
         return constructedMessages
     except Exception:
@@ -206,7 +206,7 @@ class Database:
 
   def editMessage(self, messageId, newContent):
     semaphore = Semaphore(value=0) # Create a semaphore to be used to tell once the database write has been completed
-    self.writeQueue.enQueue(("UPDATE Message SET contents=? WHERE message_id=?", (newContent, messageId), semaphore))
+    self.writeQueue.enQueue(("UPDATE Message SET contents=?,edited=? WHERE message_id=?", (newContent, True, messageId), semaphore))
     semaphore.acquire() # Wait until semaphore has been released IE has db write is complete
 
   def deleteMessage(self, messageId):

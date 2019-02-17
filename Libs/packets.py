@@ -192,6 +192,7 @@ class EditMessagePacket(Packet):
     Packet.__init__(self, "EDITMESSAGE")
     self.messageId = messageId
     self.newContents = newContents
+    self.edited = True
 
 class SetAdminStatusPacket(Packet):
   def __init__(self, admin, userId):

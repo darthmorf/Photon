@@ -95,11 +95,15 @@ class Client:
               break
             
           else:              
-            valid = _database.queryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
+            ret = _database.queryLogin(loginRequestPacket.username, loginRequestPacket.password) # Query credentials against database
+            if ret != False:
+              valid = ret[0]
+            else:
+              valid = ret
             
           if not valid:
             _logger.log(f"Invalid login from: {self.address}, id {self.id} - {err}", INFOLOGGINGENABLED)
-            loginResponse = LoginResponsePacket(False, err=err) # Tell the client the login was invalid
+            loginResponse = LoginResponsePacket(valid=False, err=err) # Tell the client the login was invalid
             self.socket.send(encode(loginResponse))
 
           else:
@@ -247,12 +251,14 @@ class Client:
 
         elif packet.type == "EDITMESSAGE":
           _database.editMessage(packet.messageId, packet.newContents)
+          packet.newContents
           i = 0
           oldMessage = None
           for message in _database.messages:
             if message.messageId == packet.messageId:
               oldMessage = _database.messages[i].contents
               _database.messages[i].contents = packet.newContents
+              _database.messages[i].edited = True
               break
             i+=1            
           sendToClients(packet) # Tell clients that the message has been edited.          
@@ -353,11 +359,12 @@ def __main__():
 
     _logger.log("Loading Database...", INFOLOGGINGENABLED)
     _database = Database(_configManager.data["dbFile"])  
+    _database.loadMessages()    
     # Create a socket object
     serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
     # Get local machine name and assign a port
-    host = socket.gethostname() # TODO: Display this to allow users to connect                           
+    host = socket.gethostname()                           
     port = _configManager.data["port"]                     
 
     # Bind to the port
